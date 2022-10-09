@@ -1,6 +1,8 @@
 #include "../include/frames.h"
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 
 int sendFrame_su(int fd, ControlField control){
@@ -98,4 +100,32 @@ int buildFrame_su(byte frame[5], int* currentByte,byte nextByte){
             break;
     }
     return 0;
+}
+
+byte*  byteStuff(byte* string){
+    size_t stuffedSize = 0;
+    byte*  c = string;
+    while (*c != 0){
+        if (*c == FLAG || *c == ESCAPE_CHR)
+            stuffedSize++;
+        stuffedSize++;
+        c++;
+    }
+    byte* stuffedString = (byte*)malloc(stuffedSize * sizeof(byte)+1);
+    stuffedString[stuffedSize] = 0;
+
+    c = string;
+    size_t i=0;
+    while(*c !=0){
+        if(*c == FLAG || *c == ESCAPE_CHR){
+            stuffedString[i] = ESCAPE_CHR;
+            i++;
+            stuffedString[i] = ESCAPE_XOR_CHR ^ (*c);
+        }
+        else
+            stuffedString[i] = *c;
+        i++;
+        c++; 
+    }
+    return stuffedString;
 }

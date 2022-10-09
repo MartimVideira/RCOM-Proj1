@@ -4,6 +4,8 @@
 
 
 #define FLAG 0x7e
+#define ESCAPE_CHR 0x7d
+#define ESCAPE_XOR_CHR 0x20
 #define ADDRESS 0x03
 
 typedef unsigned char byte;
@@ -32,4 +34,5 @@ int buildFrame_su(byte frame[5], int* currentByte,byte nextByte);
 
 int isControl(byte b);
 
+byte* byteStuff(byte* string);
 #endif

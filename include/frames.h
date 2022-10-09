@@ -17,11 +17,19 @@ typedef  enum {
     C_REJ = 1,
 } ControlField;
 
+/**
+I -> Information Frame 
+S -> Supervision Frame
+U -> un-numbered Frame
+* */
+
 int sendFrame_i(int fd);
 int sendFrame_s(int fd);
+
 int sendFrame_su(int fd,ControlField control);
 
 int buildFrame_su(byte frame[5], int* currentByte,byte nextByte);
 
 int isControl(byte b);
+
 #endif

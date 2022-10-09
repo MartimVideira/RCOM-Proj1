@@ -59,7 +59,7 @@ int openSerialPort(LinkLayer connectionParameters){
     // Set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0; // Inter-character timer unused
-    newtio.c_cc[VMIN] = 0;  // Blocking read until 5 chars received
+    newtio.c_cc[VMIN] = 0;  // Blocking read until 0 chars received
 
     // VTIME e VMIN should be changed in order to protect with a
     // timeout the reception of the following character(s)
@@ -97,12 +97,10 @@ int llopen(LinkLayer connectionParameters)
         return FALSE;
     }
     printf("Opened serialport\n");
-    //Tranitter
     int connectionEstablished = 0;
 
-    reTransmitions = 0;
     reTransmitions = connectionParameters.nRetransmissions;
-
+    //Tranitter
     if (connectionParameters.role == LlTx){
         (void)signal(SIGALRM, alarmHandler);
         while (SENDING) {
@@ -135,7 +133,6 @@ int llopen(LinkLayer connectionParameters)
             }
             READING = 1;
         }
-        // A parte do alarme ainda não está feita
         alarm(0);
     }
     // Receiver

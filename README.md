@@ -12,4 +12,9 @@ Finally:
 
 - Run `./read`  in one terminal then run `./write` in another 
 
+# llread llwrite
 
+## Byte stuffing/destuffing
+
+- Tested escapping flag and the escape character and some combination of both 
+- Still need to test full messeges!

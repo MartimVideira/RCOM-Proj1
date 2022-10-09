@@ -75,8 +75,45 @@ void testByteStuffing(){
     free(tests);
     printf("\nFinished testing byteStuff\n");
 }
+
+void testByteDeStuffing(){
+    byte testFlag[] = {FLAG,0};
+    byte testEscape[] = {ESCAPE_CHR,0};
+    byte testFEF[] = {FLAG,ESCAPE_CHR,0};
+    byte testFEFEFF[] = {FLAG,ESCAPE_CHR,FLAG,ESCAPE_CHR,FLAG,FLAG,ESCAPE_CHR,0};
+
+    byte** tests =(byte**)malloc(5 * sizeof(byte*));
+    tests[0] = testFlag;
+    tests[1] = testEscape;
+    tests[2] = testFEF;
+    tests[3] =testFEFEFF;
+    tests[4] = 0;
+
+    byte** iterTests = tests;
+    while (*iterTests != 0){
+        printf("\n\n\n");
+        printf("Before Byte Stuffing: ");
+        printHex(*iterTests);
+        printf("\n");
+        unsigned char* stuffed = byteStuff(*iterTests);
+        printf("After Byte  Stuffing: ");
+        printHex(stuffed);
+        printf("\n");
+        unsigned char* deStuffed = byteDeStuff(stuffed);
+        printf("After     deStuffing: ");
+        printHex(deStuffed);
+
+        free(stuffed);
+        free(deStuffed);
+
+        iterTests++;
+    }
+    free(tests);
+    printf("\nFinished testing byteDeStuff\n");
+}
+
 int main()
 {
-    testByteStuffing();
+    testByteDeStuffing();
     return 0;
 }

@@ -129,3 +129,31 @@ byte*  byteStuff(byte* string){
     }
     return stuffedString;
 }
+
+byte* byteDeStuff(byte* string){
+    byte* c = string;
+    // Can Be negative at times
+    int deStuffedSize = 0;
+    while(*c != 0){
+        deStuffedSize++;
+        if(*c ==ESCAPE_CHR)
+            deStuffedSize--;
+        c++;
+    }
+    byte* deStuffed = (byte*)malloc(deStuffedSize *sizeof(byte) +1);
+    deStuffed[deStuffedSize] = 0;
+
+    size_t i = 0;
+    c = string;
+    while(*c != 0){
+        if(*c == ESCAPE_CHR){
+            c++;
+            deStuffed[i] = *c ^ ESCAPE_XOR_CHR;
+        }
+        else 
+            deStuffed[i] = *c;
+        i++;
+        c++;
+    }
+    return deStuffed;
+}

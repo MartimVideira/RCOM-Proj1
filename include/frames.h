@@ -35,4 +35,6 @@ int buildFrame_su(byte frame[5], int* currentByte,byte nextByte);
 int isControl(byte b);
 
 byte* byteStuff(byte* string);
+byte* byteDeStuff(byte* string);
+
 #endif

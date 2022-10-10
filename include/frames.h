@@ -35,10 +35,10 @@ int buildFrame_su(byte frame[5], int* currentByte,byte nextByte);
 
 int isControl(byte b);
 
-byte* byteStuff(byte* string,size_t *size);
-byte* byteDeStuff(byte* string,size_t *size);
+byte* byteStuff(const byte* string,size_t *size);
+byte* byteDeStuff(const byte* string,size_t *size);
 
-byte* byteStuffString(byte* string);
-byte* byteDeStuffString(byte* string);
+byte* byteStuffString(const byte* string);
+byte* byteDeStuffString(const byte* string);
 
 #endif

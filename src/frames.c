@@ -102,7 +102,7 @@ int buildFrame_su(byte frame[5], int* currentByte,byte nextByte){
     return 0;
 }
 
-byte* byteStuff(byte* array,size_t *size){
+byte* byteStuff(const byte* array,size_t *size){
     size_t stuffedSize = 0;
     size_t array_it = 0;
     while(array_it < *size){
@@ -132,7 +132,7 @@ byte* byteStuff(byte* array,size_t *size){
     return stuffedArray;
 }
 
-byte* byteDeStuff(byte* array,size_t *size){
+byte* byteDeStuff(const byte* array,size_t *size){
     // Can Be negative at times
     int deStuffedSize = 0;
     size_t array_it = 0;
@@ -162,13 +162,13 @@ byte* byteDeStuff(byte* array,size_t *size){
 
 }
 
-byte* byteStuffString(byte* string){
+byte* byteStuffString(const byte* string){
     size_t len = strlen(string)+1;
     byte* result = byteStuff(string,&len);
     result[len] = 0;
     return result;
 }
-byte* byteDeStuffString(byte* string){
+byte* byteDeStuffString(const byte* string){
     size_t len = strlen(string)+1;
     byte* result = byteDeStuff(string,&len);
     result[len] = 0;

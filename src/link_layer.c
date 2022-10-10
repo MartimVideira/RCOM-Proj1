@@ -97,7 +97,7 @@ int llopen(LinkLayer connectionParameters)
         return FALSE;
     }
     printf("Opened serialport\n");
-    int connectionEstablished = 0;
+    int connectionEstablished = -1;
 
     reTransmitions = connectionParameters.nRetransmissions;
     //Tranitter
@@ -170,6 +170,9 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+    // Build I-Frame from buff
+    // byte Stuff I-Frame 
+    // Send I-Frame
     // TODO
 
     return 0;
@@ -181,7 +184,9 @@ int llwrite(const unsigned char *buf, int bufSize)
 int llread(unsigned char *packet)
 {
     // TODO
-
+    // Receive I-Frame
+    // byte DeDestuff 
+    // Return
     return 0;
 }
 

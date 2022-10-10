@@ -102,58 +102,75 @@ int buildFrame_su(byte frame[5], int* currentByte,byte nextByte){
     return 0;
 }
 
-byte*  byteStuff(byte* string){
+byte* byteStuff(byte* array,size_t *size){
     size_t stuffedSize = 0;
-    byte*  c = string;
-    while (*c != 0){
-        if (*c == FLAG || *c == ESCAPE_CHR)
+    size_t array_it = 0;
+    while(array_it < *size){
+        if(array[array_it] == FLAG || array[array_it] == ESCAPE_CHR)
             stuffedSize++;
         stuffedSize++;
-        c++;
+        array_it++;
     }
-    byte* stuffedString = (byte*)malloc(stuffedSize * sizeof(byte)+1);
-    stuffedString[stuffedSize] = 0;
+    
+    byte* stuffedArray = (byte*)malloc(stuffedSize*sizeof(byte));
 
-    c = string;
-    size_t i=0;
-    while(*c !=0){
-        if(*c == FLAG || *c == ESCAPE_CHR){
-            stuffedString[i] = ESCAPE_CHR;
-            i++;
-            stuffedString[i] = ESCAPE_XOR_CHR ^ (*c);
-        }
-        else
-            stuffedString[i] = *c;
-        i++;
-        c++; 
-    }
-    return stuffedString;
-}
-
-byte* byteDeStuff(byte* string){
-    byte* c = string;
-    // Can Be negative at times
-    int deStuffedSize = 0;
-    while(*c != 0){
-        deStuffedSize++;
-        if(*c ==ESCAPE_CHR)
-            deStuffedSize--;
-        c++;
-    }
-    byte* deStuffed = (byte*)malloc(deStuffedSize *sizeof(byte) +1);
-    deStuffed[deStuffedSize] = 0;
-
-    size_t i = 0;
-    c = string;
-    while(*c != 0){
-        if(*c == ESCAPE_CHR){
-            c++;
-            deStuffed[i] = *c ^ ESCAPE_XOR_CHR;
+    array_it = 0;
+    size_t stuffed_it = 0;
+    while(array_it < *size){
+        if(array[array_it] == FLAG || array[array_it] == ESCAPE_CHR){
+            stuffedArray[stuffed_it] = ESCAPE_CHR;
+            stuffed_it++;
+            stuffedArray[stuffed_it] = array[array_it] ^ ESCAPE_XOR_CHR;
         }
         else 
-            deStuffed[i] = *c;
-        i++;
-        c++;
+            stuffedArray[stuffed_it] = array[array_it];
+        array_it++;
+        stuffed_it++;
     }
+
+    *size = stuffedSize;
+    return stuffedArray;
+}
+
+byte* byteDeStuff(byte* array,size_t *size){
+    // Can Be negative at times
+    int deStuffedSize = 0;
+    size_t array_it = 0;
+    while(array_it < *size){
+        deStuffedSize++;
+        if(array[array_it] == ESCAPE_CHR)
+            deStuffedSize--;
+        array_it++;
+    }
+
+    byte* deStuffed = (byte*)malloc(deStuffedSize *sizeof(byte));
+
+    array_it = 0;
+    size_t deStuffed_it = 0;
+    while(array_it < *size){
+        if(array[array_it] == ESCAPE_CHR){
+            array_it++;
+            deStuffed[deStuffed_it] = array[array_it] ^ ESCAPE_XOR_CHR;
+        }
+        else
+            deStuffed[deStuffed_it] = array[array_it];
+        deStuffed_it++;
+        array_it++;
+    }
+    *size = deStuffedSize;
     return deStuffed;
+
+}
+
+byte* byteStuffString(byte* string){
+    size_t len = strlen(string)+1;
+    byte* result = byteStuff(string,&len);
+    result[len] = 0;
+    return result;
+}
+byte* byteDeStuffString(byte* string){
+    size_t len = strlen(string)+1;
+    byte* result = byteDeStuff(string,&len);
+    result[len] = 0;
+    return result;
 }

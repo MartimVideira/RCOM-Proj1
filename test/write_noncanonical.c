@@ -66,7 +66,7 @@ void testByteStuffing(){
         printf("Before Byte Stuffing: ");
         printHex(*iterTests);
         printf("\n");
-        unsigned char* stuffed = byteStuff(*iterTests);
+        unsigned char* stuffed = byteStuffString(*iterTests);
         printf("After Byte Stuffing: ");
         printHex(stuffed);
         free(stuffed);
@@ -95,11 +95,11 @@ void testByteDeStuffing(){
         printf("Before Byte Stuffing: ");
         printHex(*iterTests);
         printf("\n");
-        unsigned char* stuffed = byteStuff(*iterTests);
+        unsigned char* stuffed = byteStuffString(*iterTests);
         printf("After Byte  Stuffing: ");
         printHex(stuffed);
         printf("\n");
-        unsigned char* deStuffed = byteDeStuff(stuffed);
+        unsigned char* deStuffed = byteDeStuffString(stuffed);
         printf("After     deStuffing: ");
         printHex(deStuffed);
 

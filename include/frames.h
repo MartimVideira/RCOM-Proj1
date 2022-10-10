@@ -8,6 +8,7 @@
 #define ESCAPE_XOR_CHR 0x20
 #define ADDRESS 0x03
 
+#include <stdlib.h>
 typedef unsigned char byte;
 
 
@@ -34,7 +35,10 @@ int buildFrame_su(byte frame[5], int* currentByte,byte nextByte);
 
 int isControl(byte b);
 
-byte* byteStuff(byte* string);
-byte* byteDeStuff(byte* string);
+byte* byteStuff(byte* string,size_t *size);
+byte* byteDeStuff(byte* string,size_t *size);
+
+byte* byteStuffString(byte* string);
+byte* byteDeStuffString(byte* string);
 
 #endif

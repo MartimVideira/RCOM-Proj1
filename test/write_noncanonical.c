@@ -132,9 +132,42 @@ void testBuffToFrameI(){
     free(res2);
     free(msg);
 }
+void testLLWrite(){
+
+    LinkLayer parameters;
+    parameters.nRetransmissions = 1;
+    parameters.timeout = 2;
+    parameters.baudRate = BAUDRATE;
+    parameters.role = LlTx;
+    strcpy(parameters.serialPort,"/dev/ttyS11");
+    printf("Trying To open a writting connection in /dev/ttyS11\n");
+
+    int established = llopen(parameters);
+    char * result = (established)? "" : "not";
+    printf("Connection for writting was %s established\n",result);
+
+    byte testFlag[] = {FLAG};
+    byte testEscape[] = {ESCAPE_CHR,FLAG};
+    // byte testFEF[] = {FLAG,ESCAPE_CHR,0};
+
+    byte** tests =(byte**)malloc(3 * sizeof(byte*));
+    tests[0] = testFlag;
+    tests[1] = 0;
+    tests[2] = testEscape;
+
+    byte** iterTests = tests;
+    while (*iterTests != 0){
+        printf("msg: ");printHexN(*iterTests, 1);printf("\n");
+        llwrite(*iterTests, 1*sizeof(byte));
+        iterTests++;
+    }
+    free(tests);
+    printf("\nFinished testing\n");
+}
+
 
 int main()
 {
-    testBuffToFrameI();
+    testLLWrite();
     return 0;
 }

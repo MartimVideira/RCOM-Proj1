@@ -34,6 +34,8 @@ int main()
     char * result = (established)? "" : "not";
     printf("Connection for reading was %s established\n",result);
 
+    unsigned char* p;
+    llread(p);
 
     return 0;
 }

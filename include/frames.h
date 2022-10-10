@@ -16,8 +16,10 @@ typedef  enum {
     C_SET = 3 ,
     C_DISC = 11,
     C_UA = 7,
-    C_RR = 5,
-    C_REJ = 1,
+    C_RR0 = 5,
+    C_RR1 = (5+128),
+    C_REJ0 = 1,
+    C_REJ1 = (1+128)
 } ControlField;
 
 /**
@@ -29,10 +31,15 @@ U -> un-numbered Frame
 int sendFrame_s(int fd);
 
 int sendFrame_su(int fd,ControlField control);
-
-int buildFrame_su(byte frame[5], int* currentByte,byte nextByte);
-
+int checkBccFrame_s(byte frame[5]);
+int buildFrame_s(byte frame[5], int* currentByte,byte nextByte);
+int sendFrame_i(int fd,const byte* frameI,size_t size);
 int isControl(byte b);
+
+//Doing
+byte *buildFrame_i(int fd, size_t *size);
+int checkBccFrame_i(const byte* frameI,size_t size);
+
 
 byte* byteStuff(const byte* string,size_t *size);
 byte* byteDeStuff(const byte* string,size_t *size);

@@ -26,7 +26,6 @@ S -> Supervision Frame
 U -> un-numbered Frame
 * */
 
-int sendFrame_i(int fd);
 int sendFrame_s(int fd);
 
 int sendFrame_su(int fd,ControlField control);
@@ -40,5 +39,8 @@ byte* byteDeStuff(const byte* string,size_t *size);
 
 byte* byteStuffString(const byte* string);
 byte* byteDeStuffString(const byte* string);
+
+byte* bufferToFrameI(const byte* buf,size_t *size,int number);
+void printHexN(byte* string,size_t size);
 
 #endif

@@ -112,8 +112,29 @@ void testByteDeStuffing(){
     printf("\nFinished testing byteDeStuff\n");
 }
 
+void testBuffToFrameI(){
+
+    printf("\nTesting testBuffToFrameI \n");
+    size_t size = 1;
+    unsigned char * msg = (byte*)malloc(size*sizeof(byte));
+    msg[0] = 0x11;
+    //msg[1] = 0x7e;
+    //msg[2] = 0x7e;
+
+    size_t newSize1 = size;
+    printf("msg: ");printHexN(msg, size);printf("\n");
+    byte* res1= bufferToFrameI(msg,&newSize1,0);
+    free(res1);
+
+    size_t newSize2 = size;
+    printf("msg: ");printHexN(msg, size);printf("\n");
+    byte* res2 = bufferToFrameI(msg,&newSize2,1);
+    free(res2);
+    free(msg);
+}
+
 int main()
 {
-    testByteDeStuffing();
+    testBuffToFrameI();
     return 0;
 }

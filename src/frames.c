@@ -174,3 +174,65 @@ byte* byteDeStuffString(const byte* string){
     result[len] = 0;
     return result;
 }
+
+byte* bufferToFrameI(const byte* buf,size_t * size,int number){
+    
+    // To stuff frame is the data and the 2 bccs 
+    size_t toStuffSize = *size + 2;
+    byte* toStufframe = (byte*)malloc(toStuffSize* sizeof(byte));
+
+    byte control = (number)? 0 : 0x20;
+
+    byte bcc1 = FLAG ^ ADDRESS ^ control;
+
+    toStufframe[0] = bcc1;
+
+    size_t i = 0;
+    toStufframe[1] = buf[i];
+    i++;
+    byte bcc2 = toStufframe[1];
+    for(; i < *size; i++){
+        bcc2 ^=  buf[i];
+        toStufframe[1+i] = buf[i];
+    }
+    toStufframe[1+i] = bcc2;
+    *size = toStuffSize;
+    //print to stuff frame before
+    //printf("Before Stuffing : ");printHexN(toStufframe,*size);printf("\n");
+    // After this call size will be the correct size of the stuffed byte stream
+    byte* stuffedFrame = byteStuff(toStufframe,size);
+
+    //printf("After Stuffing : ");printHexN(stuffedFrame,*size);printf("\n");
+    // add flags and address and control
+
+    // After Stuffing we insert the frames f a c and last f
+    size_t finalSize = (*size +4) * sizeof(byte);
+    byte* finalFrame = (byte*)malloc(finalSize);
+
+    size_t f_it = 0;
+    finalFrame[f_it++] = FLAG;
+    finalFrame[f_it++] = ADDRESS;
+    finalFrame[f_it++] = control;
+    for(size_t i = 0; i < *size;i++)
+        finalFrame[f_it++] = stuffedFrame[i];
+
+    // Close the frame
+    finalFrame[f_it] = FLAG;
+    // Free Intermediate Alocated  Results
+    free(toStufframe);
+    free(stuffedFrame);
+
+    // printf("Final Frame: ");printHexN(finalFrame,finalSize);printf("\n");
+
+    *size = finalSize;
+    return finalFrame;
+
+}
+
+void printHexN(byte *string, size_t size){
+    size_t i =0;
+    while(i < size){
+        printf("0x%x ",string[i]);
+        i++;
+    }
+}

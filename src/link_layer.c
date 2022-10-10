@@ -171,7 +171,10 @@ int llopen(LinkLayer connectionParameters)
 int llwrite(const unsigned char *buf, int bufSize)
 {
     // Build I-Frame from buff
-    // byte Stuff I-Frame 
+    int number = 0;
+    size_t size = bufSize;
+    byte* frame = bufferToFrameI(buf,&size,number);
+
     // Send I-Frame
     // TODO
 

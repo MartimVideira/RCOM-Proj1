@@ -28,6 +28,7 @@ S -> Supervision Frame
 U -> un-numbered Frame
 * */
 
+// Function to get frame number if has number.
 int sendFrame_s(int fd);
 
 int sendFrame_su(int fd,ControlField control);

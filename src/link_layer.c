@@ -15,7 +15,7 @@
 #include "../include/frames.h"
 
 // MISC
-#define _POSIX_SOURCE 1  // POSIX compliant source
+#define _POSIX_SOURCE 1 // POSIX compliant source
 
 ////////////////////////////////////////////////
 // LLOPEN
@@ -57,8 +57,8 @@ int openSerialPort(LinkLayer connectionParameters) {
 
   // Set input mode (non-canonical, no echo,...)
   newtio.c_lflag = 0;
-  newtio.c_cc[VTIME] = 0;  // Inter-character timer unused
-  newtio.c_cc[VMIN] = 0;   // Blocking read until 0 chars received
+  newtio.c_cc[VTIME] = 0; // Inter-character timer unused
+  newtio.c_cc[VMIN] = 0;  // Blocking read until 0 chars received
 
   // VTIME e VMIN should be changed in order to protect with a
   // timeout the reception of the following character(s)
@@ -112,7 +112,8 @@ int llopen(LinkLayer connectionParameters) {
       // printf("Waitting For answer\n");
       while (READING) {
         byte nextByte = 0;
-        if (read(fd, &nextByte, 1) == -1) continue;
+        if (read(fd, &nextByte, 1) == -1)
+          continue;
         // printf("Read byte : 0x%x\n",nextByte);
         // printf("answer 0x");
         // for(int i =0; i < 5; i++)
@@ -139,7 +140,8 @@ int llopen(LinkLayer connectionParameters) {
     int connecting = 1;
     while (connecting) {
       byte nextByte = 0;
-      if (read(fd, &nextByte, 1) == -1) continue;
+      if (read(fd, &nextByte, 1) == -1)
+        continue;
       // printf("Read byte : 0x%x\n",nextByte);
       // printf("answer 0x");
       // for(int i =0; i < 5; i++)
@@ -167,7 +169,9 @@ int llwrite(const unsigned char *buf, int bufSize) {
   // Build I-Frame from buff
   size_t size = bufSize;
   byte *frame = bufferToFrameI(buf, &size, frameNumber);
-  printf("Writing the following I frame : ");printHexN(frame,size);printf("\n");
+  printf("Writing the following I%d frame : ",frameNumber);
+  printHexN(frame, size);
+  printf("\n");
   reTransmitions = parameters.nRetransmissions;
   int frameReceived = -1;
   (void)signal(SIGALRM, alarmHandler);
@@ -175,7 +179,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
   READING = 1;
   while (SENDING) {
     printf("retransmitions left:%d\n", reTransmitions);
-    printf("Sending frameI\n");
+    printf("Sending frameI%d\n",frameNumber);
     sendFrame_i(fd, frame, size);
     alarm(parameters.timeout);
     READING = 1;
@@ -185,7 +189,8 @@ int llwrite(const unsigned char *buf, int bufSize) {
     printf("Waitting For answer\n");
     while (READING) {
       byte nextByte = 0;
-      if (read(fd, &nextByte, 1) == -1) continue;
+      if (read(fd, &nextByte, 1) == -1)
+        continue;
       if (buildFrame_s(answer, &currentByte, nextByte)) {
 
         printf("Received answer: \n");
@@ -194,21 +199,20 @@ int llwrite(const unsigned char *buf, int bufSize) {
 
         if (!checkBccFrame_s(answer)) {
           // Someething BCC dosnt match
-          //reTransmitions = parameters.nRetransmissions;
+          // reTransmitions = parameters.nRetransmissions;
           printf("Answer is wrong!\n");
-        } 
-        else if ((answer[2] == C_RR0 && frameNumber == 1) ||
+        } else if ((answer[2] == C_RR0 && frameNumber == 1) ||
                    (answer[2] == C_RR1 && frameNumber == 0)) {
-          // Can send next frame
           READING = 0;
           SENDING = 0;
           frameReceived = 1;
+          frameNumber = (frameNumber) ? 0 : 1;
           printf("Received RR can return");
         } else if ((answer[2] == C_REJ0 && frameNumber == 0) ||
                    (answer[2] == C_REJ1 && frameNumber == 1)) {
           // Se receber rejn do frame n retransmittir o frame n e dar refresc as
           // tentativas
-          //reTransmitions = parameters.nRetransmissions;
+          // reTransmitions = parameters.nRetransmissions;
           printf("Received rej need to send again");
         }
       }
@@ -222,45 +226,37 @@ int llwrite(const unsigned char *buf, int bufSize) {
 // LLREAD
 ////////////////////////////////////////////////
 int llread(unsigned char *packet) {
-  // TODO
-  // Receive I-Frame
-  // byte DeDestuff
-  // Return
   int reading = 1;
   int expectedPacketNumber = 0;
   printf("Reading and Waiting\n");
   while (reading) {
     size_t size = 0;
     byte *frameI = buildFrame_i(fd, &size);
-    // Erros no bcc temos que mandar rj
-    printf("Received frame: "); printHexN(frameI, size); printf("\n");
+    printf("Received frame: ");
+    printHexN(frameI, size);
+    printf("\n");
     int receivedFrameNumber = frameI[2] & 0x20;
-    // Send Packet again! :
-    if(!checkBccFrame_i(frameI,size)){
+    // Check if disconnect was sent!
+
+    // Send Packet again! Error in bcc
+    if (!checkBccFrame_i(frameI, size)) {
       ControlField control = C_REJ0;
-      if(receivedFrameNumber)
+      if (receivedFrameNumber)
         control = C_REJ1;
-      sendFrame_su(fd,control);
-      printf("Sent Frame Reject!\n");
-    }
-    // Received same packet send next
-    else if(receivedFrameNumber  !=expectedPacketNumber){
+      sendFrame_su(fd, control);
+      printf("Sent Frame Reject%d!\n",receivedFrameNumber);
+    } else {
+      // If received the correct Frame send change expectedPacketNumber to Next
+      // Else  sender did not receive our RR expectedPacketNumber remains the
+      // same meaning repeated frame was received
+      if (receivedFrameNumber == expectedPacketNumber) {
+        expectedPacketNumber = (expectedPacketNumber) ? 0 : 1;
+      }
       ControlField control = C_RR0;
-      if(expectedPacketNumber)
+      if (expectedPacketNumber)
         control = C_RR1;
-      sendFrame_su(fd,control);
-      printf("Sent Frame Send again error already got that frame!\n");
-    
-    }
-    // Everything is good!
-    else{
-      // Switches Between 0 and 1
-      expectedPacketNumber = (expectedPacketNumber) ? 0 : 1;
-      ControlField control = C_RR0;
-      if(expectedPacketNumber)
-        control = C_RR1;
-      sendFrame_su(fd,control);
-      printf("Send Next  Frame !\n");
+      sendFrame_su(fd, control);
+      printf("Send Next  Frame RR%d!\n",expectedPacketNumber);
     }
   }
   return 0;

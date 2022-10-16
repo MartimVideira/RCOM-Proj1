@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <libgen.h>
+#include <string.h>
+
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
@@ -19,8 +22,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         printf("The given path corresponds to a directory!\n");
         return;
     }
+    char  filePath[300];
+    strcpy(filePath,filename);
+    const char* baseFilename = basename(filePath);
     printf("About the File\n");
-    printf("Name: %s\n",filename);
+    printf("Name: %s\n",baseFilename);
     printf("Size: %ld bytes\n",fileStat.st_size);
 
     // Já consigo ver se o ficheiro existe e não é um diretorio tenho acesso ao nome dele

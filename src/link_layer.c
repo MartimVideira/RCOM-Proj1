@@ -231,6 +231,8 @@ int llread(unsigned char *packet) {
   printf("Reading and Waiting\n");
   while (reading) {
     size_t size = 0;
+    // Alterar buildFrame_i para considerar que o frame pode ter um MAX_SIZE 
+    // conforme MAX_PAYLOAD_SIZE o frame terá 2*(MAX_PAYLOAD_SIZE + bcc1 +bcc2) + F + C + A + F_final
     byte *frameI = buildFrame_i(fd, &size);
     printf("Received frame: ");
     printHexN(frameI, size);

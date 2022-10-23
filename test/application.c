@@ -10,7 +10,7 @@ int main(int argc,char*argv[]){
     // strcpy(parameters.serialPort,);
     printf("Argc:%d\n",argc);
     if (argc < 2)
-        applicationLayer("/dev/ttyS10", "Lltx",123, 3, 3, "bcd");
+        applicationLayer("/dev/ttyS10", "Lltx",123, 3, 3, "penguin.gif");
     else
         applicationLayer("/dev/ttyS11", "Llrx",123, 3, 3, "bcd");
     return 0;

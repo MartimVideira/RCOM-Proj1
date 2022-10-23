@@ -2,6 +2,8 @@
 
 //#include "application_layer.h"
 #include "../include/application_layer.h"
+#include "../include/frames.h"
+#include "../include/link_layer.h"
 #include <errno.h>
 #include <libgen.h>
 #include <math.h>
@@ -11,9 +13,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include "../include/frames.h"
-#include "../include/link_layer.h"
 
 // Memory leaks
 #define MAX_DATAPACKET_SIZE (MAX_PAYLOAD_SIZE - 4)
@@ -124,19 +123,28 @@ Packet bufferToPacket(byte *buff, int size) {
     Tlv *tlvs = (Tlv *)(malloc(MAX_TLVARRAY_SIZE * sizeof(Tlv)));
     TlvArray t;
     t.buf = tlvs;
-    // decobrir quantos tlv tem?
     int counter = 1;
     int realNumTlvs = 0;
     while (counter < size) {
       enum ParameterType type = buff[counter++];
+      // printf("Type: %d\n",type);
       int valueSize = buff[counter++];
+      // printf("length: %d\n",valueSize);
       byte *value = (byte *)(malloc(valueSize * sizeof(byte)));
       for (int i = 0; i < valueSize; i++) {
         value[i] = buff[counter++];
+        // printf("0x%x ",value[i]);
       }
+      // printf("\n");
+      Tlv current;
+      current.value = value;
+      current.type = type;
+      current.length = valueSize;
+      tlvs[realNumTlvs] = current;
       realNumTlvs++;
     }
     t.size = realNumTlvs;
+    c.tlvArray = t;
   }
   p.content = c;
   return p;
@@ -144,7 +152,6 @@ Packet bufferToPacket(byte *buff, int size) {
 
 void applicationSend(LinkLayer parameters, const char *filename) {
 
-  printf("Here\n");
   struct stat fileStat;
   if (stat(filename, &fileStat) != 0) {
     printf("File does not exist\n");
@@ -164,8 +171,9 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   printf("Name: %s\n", baseFilename);
   printf("Size: %ld bytes\n", fileStat.st_size);
 
-  Tlv fileSize = {1, sizeof(fileStat.st_size), (byte *)(&fileStat.st_size)};
-  Tlv fileName = {2, strlen(baseFilename), (byte *)baseFilename};
+  Tlv fileSize = {PT_FILE_SIZE, sizeof(fileStat.st_size),
+                  (byte *)(&fileStat.st_size)};
+  Tlv fileName = {PT_FILE_NAME, strlen(baseFilename), (byte *)baseFilename};
 
   Tlv buf[2];
   buf[0] = fileSize;
@@ -190,6 +198,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   //  llwrite(packetBuffer, sizeof(packet));
 
   printf("File : %s\n", filename);
+
   FILE *fdFile = fopen(filename, "rb");
   if (NULL == fdFile) {
     printf("Error while opening the file %s\n", strerror(errno));
@@ -254,18 +263,49 @@ void applicationReceive(LinkLayer parameters) {
 
   // Read First Packet and
   size = llread(buffer);
+  Packet header = bufferToPacket(buffer, size);
+  char *newFileName;
+
   printf("DataPacket: ");
   printHexN(buffer, size);
   printf("\n");
-
+  printf("header. %d\n", header.control);
+  for (int i = 0; i < header.content.tlvArray.size; i++) {
+    enum ParameterType t = header.content.tlvArray.buf[i].type;
+    // printf("Here type is %d\n",t);
+    if (t == PT_FILE_SIZE) {
+      // nothing?
+    } else if (t == PT_FILE_NAME) {
+      int fileNameSize = header.content.tlvArray.buf[i].length;
+      // printf("filename size:%d\n",fileNameSize);
+      newFileName = (char *)(malloc(fileNameSize * sizeof(char)));
+      memccpy(newFileName, header.content.tlvArray.buf[i].value, 0,
+              fileNameSize);
+    }
+  }
+  // printf("FileName %s\n", newFileName);
+  char *newFileName2 = malloc(strlen(newFileName) + 20);
+  // printf("FileName2 %s\n", newFileName2);
+  strcpy(newFileName2,"new_");
+  strcat(newFileName2, newFileName);
+  // printf("FileName2 %s\n", newFileName2);
+  FILE *f = fopen(newFileName2, "w");
+  free(newFileName);
+  free(newFileName2);
   while (!finished) {
     int size = llread(buffer);
-    if (buffer[0] == 0x3)
-            finished = 1;
-    printf("Primeiro DataPacket: ");
-    printHexN(buffer, size);
-    printf("\n");
+    if (buffer[0] == 0x3) {
+      finished = 1;
+      break;
+    }
+    printf("Wrote to file! bytes: %d\n",size);
+    
+    fwrite((buffer + 4), size - 4,1, f);
+    // printf("Primeiro DataPacket: ");
+    // printHexN(buffer, size);
+    // printf("\n");
   }
+  fclose(f);
   free(buffer);
 }
 
@@ -286,11 +326,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   ll.nRetransmissions = nTries;
   ll.timeout = timeout;
   strcpy(ll.serialPort, serialPort);
-  if(llopen(ll) == -1)
-    {
-        printf("Could not establish connection");
-        return;
-    }
+  if (llopen(ll) == -1) {
+    printf("Could not establish connection");
+    return;
+  }
 
   if (llrole == LlTx) {
     applicationSend(ll, filename);

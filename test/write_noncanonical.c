@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -26,94 +26,187 @@
 
 volatile int STOP = FALSE;
 
-void testLLOpenWrite(){
-    LinkLayer parameters;
-    parameters.nRetransmissions = 2;
-    parameters.timeout = 1;
-    parameters.baudRate = BAUDRATE;
-    parameters.role = LlTx;
-    strcpy(parameters.serialPort,"/dev/ttyS11");
-    printf("Trying To open a writting connection in /dev/ttyS11\n");
+void testLLOpenWrite() {
+  LinkLayer parameters;
+  parameters.nRetransmissions = 2;
+  parameters.timeout = 1;
+  parameters.baudRate = BAUDRATE;
+  parameters.role = LlTx;
+  strcpy(parameters.serialPort, "/dev/ttyS11");
+  printf("Trying To open a writting connection in /dev/ttyS11\n");
 
-    int established = llopen(parameters);
-    char * result = (established)? "" : "not";
-    printf("Connection for writting was %s established\n",result);
+  int established = llopen(parameters);
+  char *result = (established) ? "" : "not";
+  printf("Connection for writting was %s established\n", result);
 }
 
-void printHex(byte* string){
-    while(*string != 0){
-        printf("0x%x ",*string);
-        string++;
-    }
+void printHex(byte *string) {
+  while (*string != 0) {
+    printf("0x%x ", *string);
+    string++;
+  }
 }
 
-void testByteStuffing(){
-    byte testFlag[] = {FLAG,0};
-    byte testEscape[] = {ESCAPE_CHR,0};
-    byte testFEF[] = {FLAG,ESCAPE_CHR,0};
-    byte testFEFEFF[] = {FLAG,ESCAPE_CHR,FLAG,ESCAPE_CHR,FLAG,FLAG,ESCAPE_CHR,0};
+void testByteStuffing() {
+  byte testFlag[] = {FLAG, 0};
+  byte testEscape[] = {ESCAPE_CHR, 0};
+  byte testFEF[] = {FLAG, ESCAPE_CHR, 0};
+  byte testFEFEFF[] = {FLAG, ESCAPE_CHR, FLAG,       ESCAPE_CHR,
+                       FLAG, FLAG,       ESCAPE_CHR, 0};
 
-    byte** tests =(byte**)malloc(5 * sizeof(byte*));
-    tests[0] = testFlag;
-    tests[1] = testEscape;
-    tests[2] = testFEF;
-    tests[3] =testFEFEFF;
-    tests[4] = 0;
+  byte **tests = (byte **)malloc(5 * sizeof(byte *));
+  tests[0] = testFlag;
+  tests[1] = testEscape;
+  tests[2] = testFEF;
+  tests[3] = testFEFEFF;
+  tests[4] = 0;
 
-    byte** iterTests = tests;
-    while (*iterTests != 0){
-        printf("\n\n\n");
-        printf("Before Byte Stuffing: ");
-        printHex(*iterTests);
-        printf("\n");
-        unsigned char* stuffed = byteStuffString(*iterTests);
-        printf("After Byte Stuffing: ");
-        printHex(stuffed);
-        free(stuffed);
-        iterTests++;
-    }
-    free(tests);
-    printf("\nFinished testing byteStuff\n");
+  byte **iterTests = tests;
+  while (*iterTests != 0) {
+    printf("\n\n\n");
+    printf("Before Byte Stuffing: ");
+    printHex(*iterTests);
+    printf("\n");
+    unsigned char *stuffed = byteStuffString(*iterTests);
+    printf("After Byte Stuffing: ");
+    printHex(stuffed);
+    free(stuffed);
+    iterTests++;
+  }
+  free(tests);
+  printf("\nFinished testing byteStuff\n");
 }
 
-void testByteDeStuffing(){
-    byte testFlag[] = {FLAG,0};
-    byte testEscape[] = {ESCAPE_CHR,0};
-    byte testFEF[] = {FLAG,ESCAPE_CHR,0};
-    byte testFEFEFF[] = {FLAG,ESCAPE_CHR,FLAG,ESCAPE_CHR,FLAG,FLAG,ESCAPE_CHR,0};
+void testByteDeStuffing() {
+  byte testFlag[] = {FLAG, 0};
+  byte testEscape[] = {ESCAPE_CHR, 0};
+  byte testFEF[] = {FLAG, ESCAPE_CHR, 0};
+  byte testFEFEFF[] = {FLAG, ESCAPE_CHR, FLAG,       ESCAPE_CHR,
+                       FLAG, FLAG,       ESCAPE_CHR, 0};
 
-    byte** tests =(byte**)malloc(5 * sizeof(byte*));
-    tests[0] = testFlag;
-    tests[1] = testEscape;
-    tests[2] = testFEF;
-    tests[3] =testFEFEFF;
-    tests[4] = 0;
+  byte **tests = (byte **)malloc(5 * sizeof(byte *));
+  tests[0] = testFlag;
+  tests[1] = testEscape;
+  tests[2] = testFEF;
+  tests[3] = testFEFEFF;
+  tests[4] = 0;
 
-    byte** iterTests = tests;
-    while (*iterTests != 0){
-        printf("\n\n\n");
-        printf("Before Byte Stuffing: ");
-        printHex(*iterTests);
-        printf("\n");
-        unsigned char* stuffed = byteStuffString(*iterTests);
-        printf("After Byte  Stuffing: ");
-        printHex(stuffed);
-        printf("\n");
-        unsigned char* deStuffed = byteDeStuffString(stuffed);
-        printf("After     deStuffing: ");
-        printHex(deStuffed);
+  byte **iterTests = tests;
+  while (*iterTests != 0) {
+    printf("\n\n\n");
+    printf("Before Byte Stuffing: ");
+    printHex(*iterTests);
+    printf("\n");
+    unsigned char *stuffed = byteStuffString(*iterTests);
+    printf("After Byte  Stuffing: ");
+    printHex(stuffed);
+    printf("\n");
+    unsigned char *deStuffed = byteDeStuffString(stuffed);
+    printf("After     deStuffing: ");
+    printHex(deStuffed);
 
-        free(stuffed);
-        free(deStuffed);
+    free(stuffed);
+    free(deStuffed);
 
-        iterTests++;
-    }
-    free(tests);
-    printf("\nFinished testing byteDeStuff\n");
+    iterTests++;
+  }
+  free(tests);
+  printf("\nFinished testing byteDeStuff\n");
 }
 
-int main()
-{
-    testByteDeStuffing();
-    return 0;
+void testBuffToFrameI() {
+
+  printf("\nTesting testBuffToFrameI \n");
+  size_t size = 1;
+  unsigned char *msg = (byte *)malloc(size * sizeof(byte));
+  msg[0] = 0x11;
+  // msg[1] = 0x7e;
+  // msg[2] = 0x7e;
+
+  size_t newSize1 = size;
+  printf("msg: ");
+  printHexN(msg, size);
+  printf("\n");
+  byte *res1 = bufferToFrameI(msg, &newSize1, 0);
+  free(res1);
+
+  size_t newSize2 = size;
+  printf("msg: ");
+  printHexN(msg, size);
+  printf("\n");
+  byte *res2 = bufferToFrameI(msg, &newSize2, 1);
+  free(res2);
+  free(msg);
+}
+void testLLWrite() {
+
+  LinkLayer parameters;
+  parameters.nRetransmissions = 1;
+  parameters.timeout = 2;
+  parameters.baudRate = BAUDRATE;
+  parameters.role = LlTx;
+  strcpy(parameters.serialPort, "/dev/ttyS11");
+  printf("Trying To open a writting connection in /dev/ttyS11\n");
+
+  int established = llopen(parameters);
+  char *result = (established) ? "" : "not";
+  printf("Connection for writting was %s established\n", result);
+
+  byte testFlag[] = {FLAG};
+  byte testEscape[] = {ESCAPE_CHR, FLAG};
+  // byte testFEF[] = {FLAG,ESCAPE_CHR,0};
+
+  byte **tests = (byte **)malloc(3 * sizeof(byte *));
+  tests[0] = testFlag;
+  tests[1] = 0;
+  tests[2] = testEscape;
+
+  byte **iterTests = tests;
+  while (*iterTests != 0) {
+    printf("msg: ");
+    printHexN(*iterTests, 1);
+    printf("\n");
+    llwrite(*iterTests, 1 * sizeof(byte));
+    iterTests++;
+  }
+  free(tests);
+  printf("\nFinished testing\n");
+}
+
+int testAll() {
+  LinkLayer parameters;
+  parameters.nRetransmissions = 2;
+  parameters.timeout = 2;
+  parameters.baudRate = BAUDRATE;
+  parameters.role = LlTx;
+  strcpy(parameters.serialPort, "/dev/ttyS11");
+  // printf("Trying To open a writting connection in /dev/ttyS11\n");
+
+  int established = llopen(parameters);
+  char *result = (established) ? "" : "not";
+  // printf("Connection for writting was %s established\n",result);
+
+  byte tests[3][3];
+  strcpy(tests[0], "oi");
+  strcpy(tests[1], "cd");
+  strcpy(tests[2], "ab");
+
+  int c = 0;
+  while (c < 3) {
+    printf("msg: %d ", c);
+    printHexN(tests[c], 3);
+    printf("\n");
+    int res = llwrite(tests[c], 3 * sizeof(byte));
+    if (res == -1)
+      printf("Messege was not received\n");
+    c++;
+  }
+  llclose(3);
+  printf("\nFinished testing\n");
+  return 0;
+}
+
+int main() {
+  testAll();
+  return 0;
 }

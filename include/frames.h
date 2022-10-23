@@ -2,6 +2,9 @@
 #define FRAMES_H
 
 
+#define MAX_PAYLOAD_SIZE 1000
+
+#define MAX_FRAME_SIZE (MAX_PAYLOAD_SIZE*2 + 2 + 1 + 2*2)
 
 #define FLAG 0x7e
 #define ESCAPE_CHR 0x7d
@@ -16,8 +19,10 @@ typedef  enum {
     C_SET = 3 ,
     C_DISC = 11,
     C_UA = 7,
-    C_RR = 5,
-    C_REJ = 1,
+    C_RR0 = 5,
+    C_RR1 = (5+128),
+    C_REJ0 = 1,
+    C_REJ1 = (1+128)
 } ControlField;
 
 /**
@@ -26,19 +31,27 @@ S -> Supervision Frame
 U -> un-numbered Frame
 * */
 
-int sendFrame_i(int fd);
+// Function to get frame number if has number.
 int sendFrame_s(int fd);
 
 int sendFrame_su(int fd,ControlField control);
-
-int buildFrame_su(byte frame[5], int* currentByte,byte nextByte);
-
+int checkBccFrame_s(byte frame[5]);
+int buildFrame_s(byte frame[5], int* currentByte,byte nextByte);
+int sendFrame_i(int fd,const byte* frameI,size_t size);
 int isControl(byte b);
 
-byte* byteStuff(byte* string,size_t *size);
-byte* byteDeStuff(byte* string,size_t *size);
+byte *buildFrame_i(int fd, size_t *size);
+int checkBccFrame_i(const byte* frameI,size_t size);
 
-byte* byteStuffString(byte* string);
-byte* byteDeStuffString(byte* string);
 
+byte* byteStuff(const byte* string,size_t *size);
+byte* byteDeStuff(const byte* string,size_t *size);
+
+byte* byteStuffString(const byte* string);
+byte* byteDeStuffString(const byte* string);
+
+byte* bufferToFrameI(const byte* buf,size_t *size,int number);
+void printHexN(byte* string,size_t size);
+
+int frameNumber(byte* frame);
 #endif

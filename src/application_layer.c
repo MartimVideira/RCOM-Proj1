@@ -127,6 +127,7 @@ void applicationSend(LinkLayer parameters,const char *filename){
     llwrite(packetBuffer, sizeof(packet));
     
     fclose(fdFile);
+    
 }
 
 void applicationReceive(LinkLayer parameters){
@@ -149,11 +150,13 @@ void applicationReceive(LinkLayer parameters){
             frwite(packet.content.data.data, 1, packet.content.data.dataSize, fdFile);   
         }
         else
+        {
             llclose(1);
+            break;
+        }
     }
 
     fclose(fdFile);
-
 
 }
 

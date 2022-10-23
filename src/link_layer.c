@@ -18,60 +18,63 @@
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
 ////////////////////////////////////////////////
+// G_lobals
+////////////////////////////////////////////////
+struct termios G_oldtio;
+struct termios G_newtio;
+int G_fd;
+int G_READING = 1;
+int G_SENDING = 1;
+int G_reTransmitions = 0;
+int G_frameNumber = 0;
+LinkLayer G_parameters;
+
+
+////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////
-
-struct termios oldtio;
-struct termios newtio;
-int fd;
-int READING = 1;
-int SENDING = 1;
-int reTransmitions = 0;
-int frameNumber = 0;
-LinkLayer parameters;
-
 int openSerialPort(LinkLayer connectionParameters) {
   // Open serial port device for reading and writing and not as controlling tty
   // because we don't want to get killed if linenoise sends CTRL-C.
   char *serialPortName = connectionParameters.serialPort;
 
-  fd = open(serialPortName, O_RDWR | O_NOCTTY);
-  if (fd < 0) {
+  G_fd = open(serialPortName, O_RDWR | O_NOCTTY);
+  if (G_fd < 0) {
     perror(serialPortName);
     return FALSE;
   }
 
-  memset(&newtio, 0, sizeof(newtio));
+  memset(&G_newtio, 0, sizeof(G_newtio));
 
   // Save current port settings
-  if (tcgetattr(fd, &oldtio) == -1) {
+  if (tcgetattr(G_fd, &G_oldtio) == -1) {
     perror("tcgetattr");
     return FALSE;
   }
 
   // Clear struct for new port settings
 
-  newtio.c_cflag = connectionParameters.baudRate | CS8 | CLOCAL | CREAD;
-  newtio.c_iflag = IGNPAR;
-  newtio.c_oflag = 0;
+  G_newtio.c_cflag = connectionParameters.baudRate | CS8 | CLOCAL | CREAD;
+  G_newtio.c_iflag = IGNPAR;
+  G_newtio.c_oflag = 0;
 
   // Set input mode (non-canonical, no echo,...)
-  newtio.c_lflag = 0;
-  newtio.c_cc[VTIME] = 0; // Inter-character timer unused
-  newtio.c_cc[VMIN] = 0;  // Blocking read until 0 chars received
+  G_newtio.c_lflag = 0;
+  G_newtio.c_cc[VTIME] = 0; // Inter-character timer unused
+  G_newtio.c_cc[VMIN] = 0;  // Blocking read until 0 chars received
 
   // VTIME e VMIN should be changed in order to protect with a
   // timeout the reception of the following character(s)
 
   // Now clean the line and activate the settings for the port
   // tcflush() discards data written to the object referred to
-  // by fd but not transmitted, or data received but not read,
+  // by G_fd but not transmitted, or data received but not read,
   // depending on the value of queue_selector:
   //   TCIFLUSH - flushes data received but not read.
-  tcflush(fd, TCIOFLUSH);
+  tcflush(G_fd, TCIOFLUSH);
 
   // Set new port settings
-  if (tcsetattr(fd, TCSANOW, &newtio) == -1) {
+  if (tcsetattr(G_fd, TCSANOW, &G_newtio) == -1) {
     perror("tcsetattr");
     return FALSE;
   }
@@ -79,12 +82,12 @@ int openSerialPort(LinkLayer connectionParameters) {
 }
 void alarmHandler() {
   // Stop Reading  to Send SET again
-  READING = 0;
+  G_READING = 0;
   // Max retransmittions reached stop sending
-  if (reTransmitions < 1) {
-    SENDING = 0;
+  if (G_reTransmitions < 1) {
+    G_SENDING = 0;
   }
-  reTransmitions -= 1;
+  G_reTransmitions -= 1;
 }
 
 int llopen(LinkLayer connectionParameters) {
@@ -92,27 +95,27 @@ int llopen(LinkLayer connectionParameters) {
     perror("Error while opening serial port");
     return FALSE;
   }
-  parameters = connectionParameters;
+  G_parameters = connectionParameters;
   printf("Opened serialport\n");
   int connectionEstablished = -1;
 
   // Tranitter
   if (connectionParameters.role == LlTx) {
-    reTransmitions = connectionParameters.nRetransmissions;
+    G_reTransmitions = connectionParameters.nRetransmissions;
     (void)signal(SIGALRM, alarmHandler);
-    while (SENDING) {
-      // printf("retransmitions left:%d\n",reTransmitions);
+    while (G_SENDING) {
+      // printf("retransmitions left:%d\n",G_reTransmitions);
       // printf("Sending Set command\n");
-      sendFrame_su(fd, C_SET);
+      sendFrame_su(G_fd, C_SET);
       alarm(connectionParameters.timeout);
-      READING = 1;
+      G_READING = 1;
       byte answer[5];
       memset(answer, 0, 5);
       int currentByte = 0;
       // printf("Waitting For answer\n");
-      while (READING) {
+      while (G_READING) {
         byte nextByte = 0;
-        if (read(fd, &nextByte, 1) == -1)
+        if (read(G_fd, &nextByte, 1) == -1)
           continue;
         // printf("Read byte : 0x%x\n",nextByte);
         // printf("answer 0x");
@@ -121,14 +124,14 @@ int llopen(LinkLayer connectionParameters) {
         // printf("\n");
         if (buildFrame_s(answer, &currentByte, nextByte)) {
           if (answer[2] == C_UA) {
-            READING = 0;
-            SENDING = 0;
+            G_READING = 0;
+            G_SENDING = 0;
             connectionEstablished = 1;
             // printf("Connection Was Established for writting RECEIVED UA!\n");
           }
         }
       }
-      READING = 1;
+      G_READING = 1;
     }
     alarm(0);
   }
@@ -140,7 +143,7 @@ int llopen(LinkLayer connectionParameters) {
     int connecting = 1;
     while (connecting) {
       byte nextByte = 0;
-      if (read(fd, &nextByte, 1) == -1)
+      if (read(G_fd, &nextByte, 1) == -1)
         continue;
       // printf("Read byte : 0x%x\n",nextByte);
       // printf("answer 0x");
@@ -153,7 +156,7 @@ int llopen(LinkLayer connectionParameters) {
           connecting = 0;
           // printf("Connection Was  For Reading Established! RECEIVED SET\n");
           //  Send Back UA
-          sendFrame_su(fd, C_UA);
+          sendFrame_su(G_fd, C_UA);
         }
       }
     }
@@ -168,28 +171,26 @@ int llopen(LinkLayer connectionParameters) {
 int llwrite(const unsigned char *buf, int bufSize) {
   // Build I-Frame from buff
   size_t size = bufSize;
-  byte *frame = bufferToFrameI(buf, &size, frameNumber);
-  printf("Writing the following I%d frame : ",frameNumber);
-  printHexN(frame, size);
-  printf("\n");
-  reTransmitions = parameters.nRetransmissions;
+  byte *frame = bufferToFrameI(buf, &size, G_frameNumber);
+  printf("Writing the following I%d frame : ",G_frameNumber); printHexN(frame, size); printf("\n");
+  G_reTransmitions = G_parameters.nRetransmissions;
   int frameReceived = -1;
   (void)signal(SIGALRM, alarmHandler);
-  SENDING = 1;
-  READING = 1;
-  while (SENDING) {
-    printf("retransmitions left:%d\n", reTransmitions);
-    printf("Sending frameI%d\n",frameNumber);
-    sendFrame_i(fd, frame, size);
-    alarm(parameters.timeout);
-    READING = 1;
+  G_SENDING = 1;
+  G_READING = 1;
+  while (G_SENDING) {
+    printf("retransmitions left:%d\n", G_reTransmitions);
+    printf("Sending frameI%d\n",G_frameNumber);
+    sendFrame_i(G_fd, frame, size);
+    alarm(G_parameters.timeout);
+    G_READING = 1;
     byte answer[5];
     memset(answer, 0, 5);
     int currentByte = 0;
     printf("Waitting For answer\n");
-    while (READING) {
+    while (G_READING) {
       byte nextByte = 0;
-      if (read(fd, &nextByte, 1) == -1)
+      if (read(G_fd, &nextByte, 1) == -1)
         continue;
       if (buildFrame_s(answer, &currentByte, nextByte)) {
 
@@ -199,20 +200,20 @@ int llwrite(const unsigned char *buf, int bufSize) {
 
         if (!checkBccFrame_s(answer)) {
           // Someething BCC dosnt match
-          // reTransmitions = parameters.nRetransmissions;
+          // G_reTransmitions = G_parameters.nRetransmissions;
           printf("Answer is wrong!\n");
-        } else if ((answer[2] == C_RR0 && frameNumber == 1) ||
-                   (answer[2] == C_RR1 && frameNumber == 0)) {
-          READING = 0;
-          SENDING = 0;
-          frameReceived = 1;
-          frameNumber = (frameNumber) ? 0 : 1;
+        } else if ((answer[2] == C_RR0 && G_frameNumber == 1) ||
+                   (answer[2] == C_RR1 && G_frameNumber == 0)) {
+          G_READING = 0;
+          G_SENDING = 0;
+          frameReceived = size;
+          G_frameNumber = (G_frameNumber) ? 0 : 1;
           printf("Received RR can return");
-        } else if ((answer[2] == C_REJ0 && frameNumber == 0) ||
-                   (answer[2] == C_REJ1 && frameNumber == 1)) {
+        } else if ((answer[2] == C_REJ0 && G_frameNumber == 0) ||
+                   (answer[2] == C_REJ1 && G_frameNumber == 1)) {
           // Se receber rejn do frame n retransmittir o frame n e dar refresc as
           // tentativas
-          // reTransmitions = parameters.nRetransmissions;
+          // G_reTransmitions = G_parameters.nRetransmissions;
           printf("Received rej need to send again");
         }
       }
@@ -235,19 +236,17 @@ int llread(unsigned char *packet) {
     // A funcao deve retornar assim que receber um frame !
     // expectedPacketNumber vai ter que passar a ser global!
     // conforme MAX_PAYLOAD_SIZE o frame terá 2*(MAX_PAYLOAD_SIZE + bcc1 +bcc2) + F + C + A + F_final
-    byte *frameI = buildFrame_i(fd, &size);
+    byte *frameI = buildFrame_i(G_fd, &size);
     printf("Received frame: ");
     printHexN(frameI, size);
     printf("\n");
     int receivedFrameNumber = frameI[2] & 0x20;
-    // Check if disconnect was sent!
-
     // Send Packet again! Error in bcc
     if (!checkBccFrame_i(frameI, size)) {
       ControlField control = C_REJ0;
       if (receivedFrameNumber)
         control = C_REJ1;
-      sendFrame_su(fd, control);
+      sendFrame_su(G_fd, control);
       printf("Sent Frame Reject%d!\n",receivedFrameNumber);
     } else {
       // If received the correct Frame send change expectedPacketNumber to Next
@@ -259,8 +258,10 @@ int llread(unsigned char *packet) {
       ControlField control = C_RR0;
       if (expectedPacketNumber)
         control = C_RR1;
-      sendFrame_su(fd, control);
+      sendFrame_su(G_fd, control);
       printf("Send Next  Frame RR%d!\n",expectedPacketNumber);
+      packet = frameI;
+      return size;
     }
   }
   return 0;

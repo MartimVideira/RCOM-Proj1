@@ -167,9 +167,9 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   strcpy(filePath, filename);
   const char *baseFilename = basename(filePath);
 
-  printf("About the File\n");
-  printf("Name: %s\n", baseFilename);
-  printf("Size: %ld bytes\n", fileStat.st_size);
+  //printf("About the File\n");
+  //printf("Name: %s\n", baseFilename);
+  //printf("Size: %ld bytes\n", fileStat.st_size);
 
   Tlv fileSize = {PT_FILE_SIZE, sizeof(fileStat.st_size),
                   (byte *)(&fileStat.st_size)};
@@ -312,11 +312,11 @@ void applicationReceive(LinkLayer parameters) {
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename) {
   LinkLayerRole llrole;
-  if (strcmp(role, "Lltx") == 0) {
-    printf("Escritor\n");
+  if (strcmp(role, "tx") == 0) {
+    //printf("Escritor\n");
     llrole = LlTx;
-  } else {
-    printf("Recetor\n");
+  } else if (strcmp(role,"rx") == 0){
+    //printf("Recetor\n");
     llrole = LlRx;
   }
 
@@ -326,6 +326,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   ll.nRetransmissions = nTries;
   ll.timeout = timeout;
   strcpy(ll.serialPort, serialPort);
+  printf("Serial Port: %s",ll.serialPort);
   if (llopen(ll) == -1) {
     printf("Could not establish connection");
     return;

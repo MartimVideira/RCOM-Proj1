@@ -38,6 +38,7 @@ int openSerialPort(LinkLayer connectionParameters) {
   // because we don't want to get killed if linenoise sends CTRL-C.
   char *serialPortName = connectionParameters.serialPort;
 
+  printf("Serial Port: %s",serialPortName);
   G_fd = open(serialPortName, O_RDWR | O_NOCTTY);
   if (G_fd < 0) {
     perror(serialPortName);

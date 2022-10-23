@@ -15,7 +15,9 @@
 #include "../include/frames.h"
 #include "../include/link_layer.h"
 
+// Memory leaks
 #define MAX_DATAPACKET_SIZE (MAX_PAYLOAD_SIZE - 4)
+#define MAX_TLVARRAY_SIZE 10
 
 void printHexN(byte *string, size_t size) {
   size_t i = 0;
@@ -106,16 +108,46 @@ byte *packetToBuffer(Packet p, int *size) {
   return buff;
 }
 
-Packet bufferToPacket(byte* buff,int size){
-    // DataPacket
-    if (buff[0] == PC_DATA){
+Packet bufferToPacket(byte *buff, int size) {
+  Packet p;
+  union Content c;
+  // DataPacket
+  if (buff[0] == PC_DATA) {
+    p.control = PC_DATA;
+    // Parse Data Packet
+    DataPacket dp;
+    dp.sequenceNumber = buff[1];
+    dp.dataSize[1] = buff[2];
+    dp.dataSize[0] = buff[3];
+    int dataSize = (dp.dataSize[1] << 8) + dp.dataSize[0];
+    printf("Data Size : %d\n", dataSize);
+    dp.data = (byte *)(malloc(dataSize * sizeof(byte)));
+    for (int i = 0; i < dataSize; i++) {
+      dp.data[i] = buff[4 + i];
     }
-
-
-    // Contol Packet
-    else{
+    c.dataPacket = dp;
+  } else {
+    p.control = buff[0];
+    // Parse Tlv Vector
+    Tlv *tlvs = (Tlv *)(malloc(MAX_TLVARRAY_SIZE * sizeof(Tlv)));
+    TlvArray t;
+    t.buf = tlvs;
+    // decobrir quantos tlv tem?
+    int counter = 1;
+    int realNumTlvs = 0;
+    while (counter < size) {
+      enum ParameterType type = buff[counter++];
+      int valueSize = buff[counter++];
+      byte *value = (byte *)(malloc(valueSize * sizeof(byte)));
+      for (int i = 0; i < valueSize; i++) {
+        value[i] = buff[counter++];
+      }
+      realNumTlvs++;
     }
-
+    t.size = realNumTlvs;
+  }
+  p.content = c;
+  return p;
 }
 
 void applicationSend(LinkLayer parameters, const char *filename) {
@@ -154,10 +186,11 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   Packet packet = {PC_START, controlContent};
   int size = 0;
   byte *packetBuffer = packetToBuffer(packet, &size);
+  llwrite(packetBuffer, size);
+  // enviar e depois libertar
   printf("Packet: ");
   printHexN(packetBuffer, size);
   printf("\n");
-
 
   // Write start control packet to signal start of file
 
@@ -199,56 +232,52 @@ void applicationSend(LinkLayer parameters, const char *filename) {
     int size = 0;
 
     byte *currentPacketBuffer = packetToBuffer(dp, &size);
+    llwrite(currentPacketBuffer, size);
 
-     printf("Primeiro DataPacket: ");
-     printHexN(currentPacketBuffer, size);
-     printf("\n");
-    // Mandar o pacotellwrite
-    // printf("sequenceNumber:0x%x\n", p.sequenceNumber);
-    // printf("dataSize[0]:0x%x\n", p.dataSize[0]);
-    // printf("datSize[1]:0x%x\n", p.dataSize[1]);
-    // printf("DataSize : %d\n", (p.dataSize[0] + (p.dataSize[1] << 8)));
-    // printf("Read: ");
-    // printHexN(data, bufferSize);
-    // printf("\n");
+    printf("Primeiro DataPacket: ");
+    printHexN(currentPacketBuffer, size);
+    printf("\n");
+
     currentPacket++;
     free(currentPacketBuffer);
   }
+  packet.control = PC_END;
+  byte *pEnd = packetToBuffer(packet, &size);
+  llwrite(pEnd, size);
+  printf("Primeiro DataPacket: ");
+  printHexN(pEnd, size);
+  printf("\n");
+  // send packet end
+  //  Send packet end
+  //  llwrite(packetBuffer, sizeof(packet));
 
-  // Write end control packet to signal end of file
-
-  // packet.content.tlvArray = tlvInfo;
-  // packet.control = 3;
-
-  // memcpy(packetBuffer, &packet, sizeof(packet));
-  // llwrite(packetBuffer, sizeof(packet));
-
-  // fclose(fdFile);
+  fclose(fdFile);
 }
 
 void applicationReceive(LinkLayer parameters) {
 
-  FILE *fdFile;
-  Packet packet;
-  char *packetBuffer;
+  int size = 0;
+  int finished = 0;
+  byte *buffer = (byte *)(malloc(MAX_PAYLOAD_SIZE * (sizeof(byte))));
+  
+  // Read First Packet and
+  size = llread(buffer);
+  printf("DataPacket: ");
+  printHexN(buffer, size);
+  printf("\n");
 
-  while (1) {
-    llread(packetBuffer);
-    memcpy(&packet, packetBuffer, sizeof(packet));
-
-    if (packet.control == 2) {
-      fdFile = fopen(packet.content.tlvArray.buf[0].value,
-                     "wb"); // read from filename
-    } else if (packet.control == 1) {
-      fwrite(packet.content.dataPacket.data, 1,
-             packet.content.dataPacket.dataSize, fdFile);
-    } else {
-      llclose(1);
-      break;
-    }
+  while (!finished) {
+    int size = llread(buffer);
+    printf("Primeiro DataPacket: ");
+    printHexN(buffer, size);
+    printf("\n");
   }
+  size = llread(buffer);
+  printf("Primeiro DataPacket: ");
+  printHexN(buffer, size);
+  printf("\n");
 
-  fclose(fdFile);
+  free(buffer);
 }
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
@@ -265,9 +294,13 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   ll.nRetransmissions = nTries;
   ll.timeout = timeout;
   strcpy(ll.serialPort, serialPort);
-
-  if (llrole == LlTx)
+  llopen(ll);
+  if (llrole == LlTx){
+        printf("Escritor\n");
     applicationSend(ll, filename);
-  else
+    }
+  else{
+        printf("Leitor\n");
     applicationReceive(ll);
+    }
 }

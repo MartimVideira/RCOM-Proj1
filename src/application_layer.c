@@ -19,14 +19,6 @@
 #define MAX_DATAPACKET_SIZE (MAX_PAYLOAD_SIZE - 4)
 #define MAX_TLVARRAY_SIZE 10
 
-void printHexN(byte *string, size_t size) {
-  size_t i = 0;
-  while (i < size) {
-    printf("0x%x ", string[i]);
-    i++;
-  }
-}
-
 typedef unsigned char byte;
 
 typedef struct {
@@ -259,7 +251,7 @@ void applicationReceive(LinkLayer parameters) {
   int size = 0;
   int finished = 0;
   byte *buffer = (byte *)(malloc(MAX_PAYLOAD_SIZE * (sizeof(byte))));
-  
+
   // Read First Packet and
   size = llread(buffer);
   printf("DataPacket: ");
@@ -268,25 +260,25 @@ void applicationReceive(LinkLayer parameters) {
 
   while (!finished) {
     int size = llread(buffer);
+    if (buffer[0] == 0x3)
+            finished = 1;
     printf("Primeiro DataPacket: ");
     printHexN(buffer, size);
     printf("\n");
   }
-  size = llread(buffer);
-  printf("Primeiro DataPacket: ");
-  printHexN(buffer, size);
-  printf("\n");
-
   free(buffer);
 }
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename) {
   LinkLayerRole llrole;
-  if (strcmp(role, "Lltx") == 0)
+  if (strcmp(role, "Lltx") == 0) {
+    printf("Escritor\n");
     llrole = LlTx;
-  else
+  } else {
+    printf("Recetor\n");
     llrole = LlRx;
+  }
 
   LinkLayer ll;
   ll.role = llrole;
@@ -294,13 +286,16 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   ll.nRetransmissions = nTries;
   ll.timeout = timeout;
   strcpy(ll.serialPort, serialPort);
-  llopen(ll);
-  if (llrole == LlTx){
-        printf("Escritor\n");
+  if(llopen(ll) == -1)
+    {
+        printf("Could not establish connection");
+        return;
+    }
+
+  if (llrole == LlTx) {
     applicationSend(ll, filename);
-    }
-  else{
-        printf("Leitor\n");
+  } else {
     applicationReceive(ll);
-    }
+  }
+  llclose(3);
 }

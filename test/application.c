@@ -12,6 +12,6 @@ int main(int argc,char*argv[]){
     if (argc < 2)
         applicationLayer("/dev/ttyS10", "Lltx",123, 3, 3, "bcd");
     else
-        applicationLayer("/dev/ttyS10", "Llrx",123, 3, 3, "bcd");
+        applicationLayer("/dev/ttyS11", "Llrx",123, 3, 3, "bcd");
     return 0;
 }

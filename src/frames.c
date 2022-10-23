@@ -106,25 +106,11 @@ int buildFrame_s(byte frame[5], int *currentByte, byte nextByte) {
   return 0;
 }
 byte *buildFrame_i(int fd, size_t *size) {
-  // See if capacity <= currentByte then need to realoc
-  size_t capacity = 10;
   size_t currentByte = 0;
   int reading = 1;
-  // Allocate memory for framei
-  byte *frameI = (byte *)malloc(capacity * sizeof(byte));
+  byte frameI[MAX_FRAME_SIZE];
   printf("Start Reading in buildFrameI\n");
   while (reading) {
-    
-    // Alocar mais memoria
-    if (capacity <= currentByte) {
-      capacity += 10;
-      byte *realloced = (byte *)realloc(frameI, capacity);
-      if (realloced == NULL) {
-        // Correctly deal with this
-        printf("Realoc Failed");
-      }
-      frameI = realloced;
-    }
     byte nextByte = 0;
     if (read(fd, &nextByte, sizeof(byte)) <= 0) continue;
 
@@ -145,7 +131,7 @@ byte *buildFrame_i(int fd, size_t *size) {
         reading = 0;
       }
     } else {
-      memset(frameI, 0, sizeof(byte) * capacity);
+      memset(frameI, 0,sizeof(frameI)); 
       currentByte = 0;
       if (nextByte == FLAG) {
         frameI[currentByte] = FLAG;
@@ -154,10 +140,8 @@ byte *buildFrame_i(int fd, size_t *size) {
     }
     printf("Frame After logic : ");printHexN(frameI,currentByte);printf("\n");
   }
-
   byte *res = byteDeStuff(frameI, &currentByte);
   *size = currentByte;
-  free(frameI);
   return res;
 }
 int checkBccFrame_i(const byte *frameI, size_t size) {

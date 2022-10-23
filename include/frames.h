@@ -2,6 +2,9 @@
 #define FRAMES_H
 
 
+#define MAX_PAYLOAD_SIZE 1000
+
+#define MAX_FRAME_SIZE (MAX_PAYLOAD_SIZE*2 + 2 + 1 + 2*2)
 
 #define FLAG 0x7e
 #define ESCAPE_CHR 0x7d
@@ -37,7 +40,6 @@ int buildFrame_s(byte frame[5], int* currentByte,byte nextByte);
 int sendFrame_i(int fd,const byte* frameI,size_t size);
 int isControl(byte b);
 
-//Doing
 byte *buildFrame_i(int fd, size_t *size);
 int checkBccFrame_i(const byte* frameI,size_t size);
 

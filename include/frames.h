@@ -53,4 +53,5 @@ byte* byteDeStuffString(const byte* string);
 byte* bufferToFrameI(const byte* buf,size_t *size,int number);
 void printHexN(byte* string,size_t size);
 
+int frameNumber(byte* frame);
 #endif

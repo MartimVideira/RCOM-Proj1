@@ -171,8 +171,9 @@ int llopen(LinkLayer connectionParameters) {
 int llwrite(const unsigned char *buf, int bufSize) {
   // Build I-Frame from buff
   size_t size = bufSize;
-  printf("Sending frameNumbe :%d\n", G_frameNumber);
+  //printf("Sending frameNumbe :%d\n", G_frameNumber);
   byte *frame = bufferToFrameI(buf, &size, G_frameNumber);
+    //printf("Sent frame with frameNumber: %d\n",frameNumber(frame));
   // printf("Writing the following I%d frame : ",G_frameNumber);
   // printHexN(frame, size); printf("\n");
   G_reTransmitions = G_parameters.nRetransmissions;
@@ -211,9 +212,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
           G_READING = 0;
           G_SENDING = 0;
           numberBytesWritten = size;
-          printf("Received RR frameNumber was %d ", G_frameNumber);
           G_frameNumber = (G_frameNumber) ? 0 : 1;
-          printf("and is now %d\n", G_frameNumber);
           // Got rej need to send again!
         } else if ((answer[2] == C_REJ0 && G_frameNumber == 0) ||
                    (answer[2] == C_REJ1 && G_frameNumber == 1)) {
@@ -246,7 +245,7 @@ int llread(unsigned char *packet) {
     // printf("Received frame: ");
     // printHexN(frameI, size);
     // printf("\n");
-    int receivedFrameNumber = frameI[2] & 0x20;
+    int receivedFrameNumber = frameNumber(frameI);
     // Send Packet again! Error in bcc
     if (!checkBccFrame_i(frameI, size)) {
       ControlField control = C_REJ0;
@@ -269,8 +268,10 @@ int llread(unsigned char *packet) {
              G_expectedFrameNumber);
       // Get the packet from the frame
       // while cycle
-      memcpy(packet, frameI, size);
-      return size;
+      for (int i=4,c=0;i < (size-2);i++,c++){
+            packet[c] = frameI[i];
+      }
+      return (size - 6);
     }
   }
   return 0;

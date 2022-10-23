@@ -36,7 +36,7 @@ int main() {
 
   unsigned char *p = (unsigned char *)(malloc(1010 * sizeof(unsigned char)));
   int c = 0;
-  while (c < 2) {
+  while (c < 3) {
     int size = llread(p);
     printf("Application received packet\n");
     printHexN(p, size);

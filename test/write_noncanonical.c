@@ -192,7 +192,7 @@ int testAll() {
   strcpy(tests[2], "ab");
 
   int c = 0;
-  while (c < 2) {
+  while (c < 3) {
     printf("msg: %d ", c);
     printHexN(tests[c], 3);
     printf("\n");

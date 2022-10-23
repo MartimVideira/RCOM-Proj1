@@ -5,7 +5,6 @@
 #include <string.h>
 #include <unistd.h>
 
-int nextByteEscaped = 0;
 int sendFrame_su(int fd, ControlField control) {
   byte su[5];
 
@@ -22,6 +21,9 @@ int sendFrame_su(int fd, ControlField control) {
   return res;
 }
 
+int frameNumber(byte* frame){
+    return (frame[2] & 0x40)? 1 : 0;
+}
 int sendFrame_i(int fd, const byte *frameI, size_t size) {
   int res = write(fd, frameI, size);
   return res;
@@ -134,7 +136,7 @@ byte *buildFrame_i(int fd, size_t *size) {
       }
     } else {
       memset(frameI, 0, sizeof(frameI));
-      printf("Got an error rebuilding frame I\n");
+      printf("Got an error building frame I\n");
       currentByte = 0;
       if (nextByte == FLAG) {
         frameI[currentByte] = FLAG;
@@ -239,7 +241,7 @@ byte *bufferToFrameI(const byte *buf, size_t *size, int number) {
   size_t toStuffSize = *size + 2;
   byte *toStufframe = (byte *)malloc(toStuffSize * sizeof(byte));
 
-  byte control = (number) ? 0 : 0x40;
+  byte control = (number) ? 0x40:0;
 
   byte bcc1 = FLAG ^ ADDRESS ^ control;
 

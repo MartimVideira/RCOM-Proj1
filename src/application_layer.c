@@ -47,7 +47,7 @@ enum PacketControl{
 typedef struct{
 
     enum PacketControl control;
-    union {
+    union Content {
         TlvArray tlvArray;
         DataPacket data;
     } content;
@@ -58,31 +58,121 @@ typedef struct{
 void applicationSend(LinkLayer parameters,const char *filename){
 
     struct stat fileStat;
-    if (stat(filename,&fileStat) != 0){
+    if (stat(filename,&fileStat) != 0) {
         printf("File does not exist\n");
         return;
     }
-    if (S_ISREG(fileStat.st_mode) == 0){
+
+    if (S_ISREG(fileStat.st_mode) == 0) {
         printf("The given path corresponds to a directory!\n");
         return;
     }
+
     char  filePath[300];
-    strcpy(filePath,filename);
+    strcpy(filePath, filename);
     const char* baseFilename = basename(filePath);
+
     printf("About the File\n");
     printf("Name: %s\n",baseFilename);
     printf("Size: %ld bytes\n",fileStat.st_size);
 
-    // Já consigo ver se o ficheiro existe e não é um diretorio tenho acesso ao nome dele
-    // Falta secalhar truncar e considerar so o nome do ficheiro e não o path ver como isso será possivel
-    // Depois falta abrir em modo binário e comecar a ler o ficheiro!
+    Tlv fileName = {2, sizeof(baseFilename), baseFilename};
+    Tlv fileSize = {1, sizeof(fileStat.st_size), fileStat.st_size};
+
+    Tlv *buf;
+    buf[0] = fileName;
+    buf[1] = fileSize;
+
+    TlvArray tlvInfo = {buf, sizeof(buf)};
+    union Content content;
+    content.tlvArray = tlvInfo;
+
+    Packet packet = {2, content};
+    char * packetBuffer;
+
+    // Write start control packet to signal start of file
+
+    memcpy(packetBuffer, &packet, sizeof(packet));
+    llwrite(packetBuffer, sizeof(packet));
+
+    FILE* fdFile = fopen(filename, "rb");
+    byte* data;
+
+    while (1) { // Not sure how yet
+
+        size_t bufferSize = fread(data, 1, 4, fdFile);
+
+        if (bufferSize == -1)
+            break;
+
+        byte dataSize[2];
+        dataSize[0] = (bufferSize >> 8) & 0xFF;
+        dataSize[1] = bufferSize & 0xFF;
+
+        DataPacket dataPacket = {0, dataSize, data};
+        packet.content.data = dataPacket;
+        packet.control = 1;
+
+        memcpy(packetBuffer, &packet, sizeof(packet));
+        llwrite(packetBuffer, sizeof(packet));
+    
+    }
+
+    // Write end control packet to signal end of file
+
+    packet.content.tlvArray = tlvInfo;
+    packet.control = 3;
+
+    memcpy(packetBuffer, &packet, sizeof(packet));
+    llwrite(packetBuffer, sizeof(packet));
+    
+    fclose(fdFile);
 }
-void applicationRecieve(LinkLayer parameters){
-    // What if that fileName already exists?
+
+void applicationReceive(LinkLayer parameters){
+
+    FILE* fdFile;
+    Packet packet;
+    char * packetBuffer;
+
+    while (1)
+    {
+        llread(packetBuffer);
+        memcpy(&packet, packetBuffer, sizeof(packet));
+
+        if (packet.control == 2)
+        {
+            fdFile = fopen(packet.content.tlvArray.buf[0].value, "wb"); // read from filename
+        }
+        else if (packet.control == 1)
+        {
+            frwite(packet.content.data.data, 1, packet.content.data.dataSize, fdFile);   
+        }
+        else
+            llclose(1);
+    }
+
+    fclose(fdFile);
+
+
 }
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
-    // Create Linklayer parameters and do a switch on the role
+    LinkLayerRole llrole;
+    if (strcmp(role, "transmitter") == 0)
+        llrole = LlTx;
+    else
+        llrole = LlRx;
+
+    LinkLayer ll = {serialPort, llrole, baudRate, nTries, timeout};
+    if (llopen(ll) == 0)
+        return;
+
+    if (llrole == LlTx)
+        applicationSend(ll, filename);
+    else
+        applicationReceive(ll);
+
 }

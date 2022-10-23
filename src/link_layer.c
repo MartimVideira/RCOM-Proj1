@@ -27,8 +27,8 @@ int G_READING = 1;
 int G_SENDING = 1;
 int G_reTransmitions = 0;
 int G_frameNumber = 0;
+int G_expectedFrameNumber = 0;
 LinkLayer G_parameters;
-
 
 ////////////////////////////////////////////////
 // LLOPEN
@@ -171,56 +171,62 @@ int llopen(LinkLayer connectionParameters) {
 int llwrite(const unsigned char *buf, int bufSize) {
   // Build I-Frame from buff
   size_t size = bufSize;
+  printf("Sending frameNumbe :%d\n", G_frameNumber);
   byte *frame = bufferToFrameI(buf, &size, G_frameNumber);
-  printf("Writing the following I%d frame : ",G_frameNumber); printHexN(frame, size); printf("\n");
+  // printf("Writing the following I%d frame : ",G_frameNumber);
+  // printHexN(frame, size); printf("\n");
   G_reTransmitions = G_parameters.nRetransmissions;
-  int frameReceived = -1;
+  int numberBytesWritten = -1;
   (void)signal(SIGALRM, alarmHandler);
   G_SENDING = 1;
   G_READING = 1;
   while (G_SENDING) {
-    printf("retransmitions left:%d\n", G_reTransmitions);
-    printf("Sending frameI%d\n",G_frameNumber);
+    // printf("retransmitions left:%d\n", G_reTransmitions);
+    // printf("Sending frameI%d\n",G_frameNumber);
     sendFrame_i(G_fd, frame, size);
     alarm(G_parameters.timeout);
     G_READING = 1;
     byte answer[5];
     memset(answer, 0, 5);
     int currentByte = 0;
-    printf("Waitting For answer\n");
+    // printf("Waitting For answer\n");
     while (G_READING) {
       byte nextByte = 0;
       if (read(G_fd, &nextByte, 1) == -1)
         continue;
       if (buildFrame_s(answer, &currentByte, nextByte)) {
 
-        printf("Received answer: \n");
-        printHexN(answer, 5);
-        printf("\n");
+        // printf("Received answer: \n");
+        // printHexN(answer, 5);
+        // printf("\n");
 
         if (!checkBccFrame_s(answer)) {
           // Someething BCC dosnt match
           // G_reTransmitions = G_parameters.nRetransmissions;
           printf("Answer is wrong!\n");
-        } else if ((answer[2] == C_RR0 && G_frameNumber == 1) ||
-                   (answer[2] == C_RR1 && G_frameNumber == 0)) {
+        }
+        // Everything is okay
+        else if ((answer[2] == C_RR0 && G_frameNumber == 1) ||
+                 (answer[2] == C_RR1 && G_frameNumber == 0)) {
           G_READING = 0;
           G_SENDING = 0;
-          frameReceived = size;
+          numberBytesWritten = size;
+          printf("Received RR frameNumber was %d ", G_frameNumber);
           G_frameNumber = (G_frameNumber) ? 0 : 1;
-          printf("Received RR can return");
+          printf("and is now %d\n", G_frameNumber);
+          // Got rej need to send again!
         } else if ((answer[2] == C_REJ0 && G_frameNumber == 0) ||
                    (answer[2] == C_REJ1 && G_frameNumber == 1)) {
           // Se receber rejn do frame n retransmittir o frame n e dar refresc as
           // tentativas
           // G_reTransmitions = G_parameters.nRetransmissions;
-          printf("Received rej need to send again");
+          printf("Received rej need to send again\n");
         }
       }
     }
   }
   alarm(0);
-  return frameReceived;
+  return numberBytesWritten;
 }
 
 ////////////////////////////////////////////////
@@ -228,18 +234,18 @@ int llwrite(const unsigned char *buf, int bufSize) {
 ////////////////////////////////////////////////
 int llread(unsigned char *packet) {
   int reading = 1;
-  int expectedPacketNumber = 0;
-  printf("Reading and Waiting\n");
+  printf("llread\n");
   while (reading) {
     size_t size = 0;
-    // Alterar buildFrame_i para considerar que o frame pode ter um MAX_SIZE 
+    // Alterar buildFrame_i para considerar que o frame pode ter um MAX_SIZE
     // A funcao deve retornar assim que receber um frame !
-    // expectedPacketNumber vai ter que passar a ser global!
-    // conforme MAX_PAYLOAD_SIZE o frame terá 2*(MAX_PAYLOAD_SIZE + bcc1 +bcc2) + F + C + A + F_final
+    // G_expectedFrameNumber vai ter que passar a ser global!
+    // conforme MAX_PAYLOAD_SIZE o frame terá 2*(MAX_PAYLOAD_SIZE + bcc1 +bcc2)
+    // + F + C + A + F_final
     byte *frameI = buildFrame_i(G_fd, &size);
-    printf("Received frame: ");
-    printHexN(frameI, size);
-    printf("\n");
+    // printf("Received frame: ");
+    // printHexN(frameI, size);
+    // printf("\n");
     int receivedFrameNumber = frameI[2] & 0x20;
     // Send Packet again! Error in bcc
     if (!checkBccFrame_i(frameI, size)) {
@@ -247,31 +253,110 @@ int llread(unsigned char *packet) {
       if (receivedFrameNumber)
         control = C_REJ1;
       sendFrame_su(G_fd, control);
-      printf("Sent Frame Reject%d!\n",receivedFrameNumber);
+      printf("Sent Frame Reject%d!\n", receivedFrameNumber);
     } else {
-      // If received the correct Frame send change expectedPacketNumber to Next
-      // Else  sender did not receive our RR expectedPacketNumber remains the
+      // If received the correct Frame send change G_expectedFrameNumber to Next
+      // Else  sender did not receive our RR G_expectedFrameNumber remains the
       // same meaning repeated frame was received
-      if (receivedFrameNumber == expectedPacketNumber) {
-        expectedPacketNumber = (expectedPacketNumber) ? 0 : 1;
+      if (receivedFrameNumber == G_expectedFrameNumber) {
+        G_expectedFrameNumber = (G_expectedFrameNumber) ? 0 : 1;
       }
       ControlField control = C_RR0;
-      if (expectedPacketNumber)
+      if (G_expectedFrameNumber)
         control = C_RR1;
       sendFrame_su(G_fd, control);
-      printf("Send Next  Frame RR%d!\n",expectedPacketNumber);
-      packet = frameI;
+      printf("Received I{%d} Send Next Frame RR%d!\n", receivedFrameNumber,
+             G_expectedFrameNumber);
+      // Get the packet from the frame
+      // while cycle
+      memcpy(packet, frameI, size);
       return size;
     }
   }
   return 0;
 }
 
+int llcloseT() {
+  int connectionClosed = 0;
+  G_reTransmitions = G_parameters.nRetransmissions;
+  (void)signal(SIGALRM, alarmHandler);
+  while (!connectionClosed) {
+    // printf("retransmitions left:%d\n",G_reTransmitions);
+    // printf("Sending Set command\n");
+    sendFrame_su(G_fd, C_DISC);
+    alarm(G_parameters.timeout);
+    G_READING = 1;
+    byte answer[5];
+    memset(answer, 0, 5);
+    int currentByte = 0;
+    // printf("Waitting For answer\n");
+    while (G_READING) {
+      byte nextByte = 0;
+      if (read(G_fd, &nextByte, 1) == -1)
+        continue;
+      // printf("Read byte : 0x%x\n",nextByte);
+      // printf("answer 0x");
+      // for(int i =0; i < 5; i++)
+      //     printf("%x",answer[i]);
+      // printf("\n");
+      if (buildFrame_s(answer, &currentByte, nextByte)) {
+        if (answer[2] == C_DISC) {
+          sendFrame_su(G_fd, C_UA);
+          connectionClosed = 1;
+          G_READING = 0;
+          G_SENDING = 0;
+          //printf("Received disc from reader sending ua\n");
+        }
+      }
+    }
+    G_READING = 1;
+  }
+  alarm(0);
+  if (connectionClosed)
+    printf("Connecton was correctly closed by the writter\n");
+  else
+    printf("Connecton was not correctly closed by the writter\n");
+  return connectionClosed;
+}
+
+int llcloseR() {
+  byte answer[5];
+  int currentByte = 0;
+  int connectionClosed = 0;
+  int waitingUA = 0;
+  while (!connectionClosed) {
+    byte nextByte = 0;
+    if (read(G_fd, &nextByte, 1) == -1)
+      continue;
+    if (buildFrame_s(answer, &currentByte, nextByte)) {
+      //printf("Got frame\n");
+      if (waitingUA && (answer[2] == C_UA)) {
+        connectionClosed = 1;
+        //printf("Received UA\n");
+      }
+      if (answer[2] == C_DISC) {
+        waitingUA = 1;
+        memset(answer, 0, 5);
+        currentByte = 0;
+        //printf("Received disc from writter sending disc and waiting for ua \n");
+        sendFrame_su(G_fd, C_DISC);
+      }
+    }
+  }
+  if (connectionClosed)
+    printf("Connecton was correctly closed by the reader\n");
+  else
+    printf("Connecton was not correctly closed by the reader\n");
+  return connectionClosed;
+}
 ////////////////////////////////////////////////
 // LLCLOSE
 ////////////////////////////////////////////////
 int llclose(int showStatistics) {
-  // TODO
-
+  printf("llclose\n");
+  if (G_parameters.role == LlTx) {
+    llcloseT();
+  } else
+    llcloseR();
   return 1;
 }

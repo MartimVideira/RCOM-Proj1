@@ -232,6 +232,8 @@ int llread(unsigned char *packet) {
   while (reading) {
     size_t size = 0;
     // Alterar buildFrame_i para considerar que o frame pode ter um MAX_SIZE 
+    // A funcao deve retornar assim que receber um frame !
+    // expectedPacketNumber vai ter que passar a ser global!
     // conforme MAX_PAYLOAD_SIZE o frame terá 2*(MAX_PAYLOAD_SIZE + bcc1 +bcc2) + F + C + A + F_final
     byte *frameI = buildFrame_i(fd, &size);
     printf("Received frame: ");

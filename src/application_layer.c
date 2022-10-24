@@ -74,12 +74,12 @@ byte *packetToBuffer(Packet p, int *size) {
     // Controlo + tamanho de cada tlv
     // tlv : 1tipo + 1tamanho + 1*tamanho
     int tlvSize = 0;
-    printf("TLVArray size : %d\n", p.content.tlvArray.size);
+    //printf("TLVArray size : %d\n", p.content.tlvArray.size);
     for (byte i = 0; i < p.content.tlvArray.size; i++) {
       Tlv current = p.content.tlvArray.buf[i];
       tlvSize += 1 + 1 + current.length;
     }
-    printf("TLVArray size: %d\n", tlvSize);
+    //printf("TLVArray size: %d\n", tlvSize);
     *size = 1 + tlvSize;
 
     buff = (byte *)malloc((*size) * sizeof(byte));

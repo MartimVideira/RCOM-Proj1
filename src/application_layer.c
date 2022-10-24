@@ -190,6 +190,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
             printf("Timout occured! Exitting Program\n");
         exit(-1);
     }
+
   // enviar e depois libertar
 
   // printf("Packet: ");
@@ -212,7 +213,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   // Carefull
   int totalPackets =
       ceil((double)fileStat.st_size / (double)MAX_DATAPACKET_SIZE);
-
+  int currentPacketNumber =0;
   printf("Total Packets :%d\n", totalPackets);
   byte data[MAX_DATAPACKET_SIZE];
   int currentPacket = 0;
@@ -242,6 +243,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
             printf("Timout occured! Exitting Program\n");
         exit(-1);
         }
+    printf("Sending %d/%d\n",++currentPacketNumber,totalPackets);
 
     //printf("Primeiro DataPacket: ");
     //printHexN(currentPacketBuffer, size);

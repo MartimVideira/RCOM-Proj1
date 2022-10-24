@@ -186,7 +186,8 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   Packet packet = {PC_START, controlContent};
   int size = 0;
   byte *packetBuffer = packetToBuffer(packet, &size);
-  llwrite(packetBuffer, size);
+  if(llwrite(packetBuffer, size) == -1)
+            printf("Timout occured! Exitting Program\n");
   // enviar e depois libertar
 
   // printf("Packet: ");
@@ -234,7 +235,10 @@ void applicationSend(LinkLayer parameters, const char *filename) {
     int size = 0;
 
     byte *currentPacketBuffer = packetToBuffer(dp, &size);
-    llwrite(currentPacketBuffer, size);
+    
+    if(llwrite(currentPacketBuffer, size) == -1){
+            printf("Timout occured! Exitting Program\n");
+        }
 
     //printf("Primeiro DataPacket: ");
     //printHexN(currentPacketBuffer, size);
@@ -245,7 +249,8 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   }
   packet.control = PC_END;
   byte *pEnd = packetToBuffer(packet, &size);
-  llwrite(pEnd, size);
+  if(llwrite(pEnd, size))
+            printf("Timout occured! Exitting Program\n");
   //printf("Primeiro DataPacket: ");
   //printHexN(pEnd, size);
   //printf("\n");

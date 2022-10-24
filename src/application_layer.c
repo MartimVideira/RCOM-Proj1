@@ -155,12 +155,12 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   struct stat fileStat;
   if (stat(filename, &fileStat) != 0) {
     printf("File does not exist\n");
-    return;
+    exit(-1);
   }
 
   if (S_ISREG(fileStat.st_mode) == 0) {
     printf("The given path corresponds to a directory!\n");
-    return;
+    exit(-1);
   }
 
   char filePath[300];
@@ -188,7 +188,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   byte *packetBuffer = packetToBuffer(packet, &size);
   if(llwrite(packetBuffer, size) == -1){
             printf("Timout occured! Exitting Program\n");
-        return;
+        exit(-1);
     }
   // enviar e depois libertar
 
@@ -206,7 +206,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   FILE *fdFile = fopen(filename, "rb");
   if (NULL == fdFile) {
     printf("Error while opening the file %s\n", strerror(errno));
-    return;
+    exit(-1);
   }
 
   // Carefull
@@ -240,7 +240,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
     
     if(llwrite(currentPacketBuffer, size) == -1){
             printf("Timout occured! Exitting Program\n");
-        return;
+        exit(-1);
         }
 
     //printf("Primeiro DataPacket: ");

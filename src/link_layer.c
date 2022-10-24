@@ -89,6 +89,7 @@ void alarmHandler() {
     G_SENDING = 0;
   }
   G_reTransmitions -= 1;
+  printf("Retransmition!\n");
 }
 
 int llopen(LinkLayer connectionParameters) {

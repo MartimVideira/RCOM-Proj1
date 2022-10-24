@@ -205,7 +205,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
         if (!checkBccFrame_s(answer)) {
           // Someething BCC dosnt match
           // G_reTransmitions = G_parameters.nRetransmissions;
-          printf("Answer is wrong!\n");
+          printf("Answer is wrong! Error on the BCC\n");
         }
         // Everything is okay
         else if ((answer[2] == C_RR0 && G_frameNumber == 1) ||
@@ -214,6 +214,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
           G_SENDING = 0;
           numberBytesWritten = size;
           G_frameNumber = (G_frameNumber) ? 0 : 1;
+          printf("Everything is alright got RR\n");
           // Got rej need to send again!
         } else if ((answer[2] == C_REJ0 && G_frameNumber == 0) ||
                    (answer[2] == C_REJ1 && G_frameNumber == 1)) {
@@ -253,7 +254,7 @@ int llread(unsigned char *packet) {
       if (receivedFrameNumber)
         control = C_REJ1;
       sendFrame_su(G_fd, control);
-      printf("Sent Frame Reject%d!\n", receivedFrameNumber);
+      printf("Sent Frame Reject{%d}!\n", receivedFrameNumber);
     } else {
       // If received the correct Frame send change G_expectedFrameNumber to Next
       // Else  sender did not receive our RR G_expectedFrameNumber remains the

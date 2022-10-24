@@ -188,9 +188,10 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   byte *packetBuffer = packetToBuffer(packet, &size);
   llwrite(packetBuffer, size);
   // enviar e depois libertar
-  printf("Packet: ");
-  printHexN(packetBuffer, size);
-  printf("\n");
+
+  // printf("Packet: ");
+  // printHexN(packetBuffer, size);
+  // printf("\n");
 
   // Write start control packet to signal start of file
 
@@ -219,7 +220,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
 
     if (bufferSize == -1)
       break;
-    printf("Read packet %d\n", currentPacket);
+    //printf("Read packet %d\n", currentPacket);
     DataPacket p;
     p.sequenceNumber = currentPacket % 255;
     p.dataSize[0] = bufferSize & (0xFF);
@@ -235,9 +236,9 @@ void applicationSend(LinkLayer parameters, const char *filename) {
     byte *currentPacketBuffer = packetToBuffer(dp, &size);
     llwrite(currentPacketBuffer, size);
 
-    printf("Primeiro DataPacket: ");
-    printHexN(currentPacketBuffer, size);
-    printf("\n");
+    //printf("Primeiro DataPacket: ");
+    //printHexN(currentPacketBuffer, size);
+    //printf("\n");
 
     currentPacket++;
     free(currentPacketBuffer);
@@ -245,9 +246,9 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   packet.control = PC_END;
   byte *pEnd = packetToBuffer(packet, &size);
   llwrite(pEnd, size);
-  printf("Primeiro DataPacket: ");
-  printHexN(pEnd, size);
-  printf("\n");
+  //printf("Primeiro DataPacket: ");
+  //printHexN(pEnd, size);
+  //printf("\n");
   // send packet end
   //  Send packet end
   //  llwrite(packetBuffer, sizeof(packet));
@@ -266,10 +267,10 @@ void applicationReceive(LinkLayer parameters) {
   Packet header = bufferToPacket(buffer, size);
   char *newFileName;
 
-  printf("DataPacket: ");
-  printHexN(buffer, size);
-  printf("\n");
-  printf("header. %d\n", header.control);
+  //printf("DataPacket: ");
+  //printHexN(buffer, size);
+  //printf("\n");
+  //printf("header. %d\n", header.control);
   for (int i = 0; i < header.content.tlvArray.size; i++) {
     enum ParameterType t = header.content.tlvArray.buf[i].type;
     // printf("Here type is %d\n",t);

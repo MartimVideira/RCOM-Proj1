@@ -136,7 +136,7 @@ byte *buildFrame_i(int fd, size_t *size) {
       }
     } else {
       memset(frameI, 0, sizeof(frameI));
-      printf("Got an error building frame I\n");
+      //printf("Got an error building frame I\n");
       currentByte = 0;
       if (nextByte == FLAG) {
         frameI[currentByte] = FLAG;

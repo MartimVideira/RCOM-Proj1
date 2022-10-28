@@ -85,7 +85,7 @@ int openSerialPort(LinkLayer connectionParameters) {
   // because we don't want to get killed if linenoise sends CTRL-C.
   char *serialPortName = connectionParameters.serialPort;
 
-  printf("Serial Port: %s",serialPortName);
+  //printf("Serial Port: %s",serialPortName);
   G_fd = open(serialPortName, O_RDWR | O_NOCTTY);
   if (G_fd < 0) {
     perror(serialPortName);
@@ -136,7 +136,7 @@ void alarmHandler() {
     G_SENDING = 0;
   }
   G_reTransmitions -= 1;
-  printf("Retransmition!\n");
+  //printf("Retransmition!\n");
   G_statistics.retransmitions++;
 }
 
@@ -147,7 +147,7 @@ int llopen(LinkLayer connectionParameters) {
     return FALSE;
   }
   G_parameters = connectionParameters;
-  printf("Opened serialport\n");
+  //printf("Opened serialport\n");
   int connectionEstablished = -1;
 
   // Transmitter
@@ -262,7 +262,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
         if (!checkBccFrame_s(answer)) {
           // Someething BCC dosnt match
           // G_reTransmitions = G_parameters.nRetransmissions;
-          printf("Answer is wrong! Error on the BCC\n");
+          //printf("Answer is wrong! Error on the BCC\n");
         }
         // Everything is okay
         else if ((answer[2] == C_RR0 && G_frameNumber == 1) ||
@@ -271,14 +271,14 @@ int llwrite(const unsigned char *buf, int bufSize) {
           G_SENDING = 0;
           numberBytesWritten = size;
           G_frameNumber = (G_frameNumber) ? 0 : 1;
-          printf("Everything is alright got RR\n");
+          //printf("Everything is alright got RR\n");
           // Got rej need to send again!
         } else if ((answer[2] == C_REJ0 && G_frameNumber == 0) ||
                    (answer[2] == C_REJ1 && G_frameNumber == 1)) {
           // Se receber rejn do frame n retransmittir o frame n e dar refresc as
           // tentativas
           // G_reTransmitions = G_parameters.nRetransmissions;
-          printf("Received rej need to send again\n");
+          //printf("Received rej need to send again\n");
           G_statistics.rejReceived++;
         }
       }
@@ -293,7 +293,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
 ////////////////////////////////////////////////
 int llread(unsigned char *packet) {
   int reading = 1;
-  printf("llread\n");
+  //printf("llread\n");
   while (reading) {
     size_t size = 0;
     // Alterar buildFrame_i para considerar que o frame pode ter um MAX_SIZE
@@ -313,7 +313,7 @@ int llread(unsigned char *packet) {
       if (receivedFrameNumber)
         control = C_REJ1;
       sendFrame_su(G_fd, control);
-      printf("Sent Frame Reject{%d}!\n", receivedFrameNumber);
+      //printf("Sent Frame Reject{%d}!\n", receivedFrameNumber);
       G_statistics.rejSent++;
     } else {
       // If received the correct Frame send change G_expectedFrameNumber to Next
@@ -326,8 +326,7 @@ int llread(unsigned char *packet) {
       if (G_expectedFrameNumber)
         control = C_RR1;
       sendFrame_su(G_fd, control);
-      printf("Received I{%d} Send Next Frame RR%d!\n", receivedFrameNumber,
-             G_expectedFrameNumber);
+      //printf("Received I{%d} Send Next Frame RR%d!\n", receivedFrameNumber, G_expectedFrameNumber);
       // Get the packet from the frame
       // while cycle
       for (int i=4,c=0;i < (size-2);i++,c++){
@@ -377,10 +376,10 @@ int llcloseT() {
     G_READING = 1;
   }
   alarm(0);
-  if (connectionClosed)
-    printf("Connecton was correctly closed by the writter\n");
-  else
-    printf("Connecton was not correctly closed by the writter\n");
+  //if (connectionClosed)
+  //  printf("Connecton was correctly closed by the writter\n");
+  //else
+  //  printf("Connecton was not correctly closed by the writter\n");
   return connectionClosed;
 }
 
@@ -410,17 +409,17 @@ int llcloseR() {
       }
     }
   }
-  if (connectionClosed)
-    printf("Connecton was correctly closed by the reader\n");
-  else
-    printf("Connecton was not correctly closed by the reader\n");
+  //if (connectionClosed)
+  //  printf("Connecton was correctly closed by the reader\n");
+  //else
+  //  printf("Connecton was not correctly closed by the reader\n");
   return connectionClosed;
 }
 ////////////////////////////////////////////////
 // LLCLOSE
 ////////////////////////////////////////////////
 int llclose(int showStatistic) {
-  printf("llclose\n");
+  //printf("llclose\n");
   clock_t startedDisconect= clock();
   if (G_parameters.role == LlTx) {
     llcloseT();

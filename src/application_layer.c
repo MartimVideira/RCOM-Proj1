@@ -59,7 +59,7 @@ byte *packetToBuffer(Packet p, int *size) {
     // 1Controlo + 1sequenceNumber + 2DataSize + (1*dataSize)
     int dataSize = (p.content.dataPacket.dataSize[1] << 8) +
                    p.content.dataPacket.dataSize[0];
-    printf("DataSize : %d\n", dataSize);
+    //printf("DataSize : %d\n", dataSize);
     *size = 4 + dataSize;
     buff = (byte *)malloc((*size) * sizeof(byte));
     buff[0] = p.control;
@@ -111,7 +111,7 @@ Packet bufferToPacket(byte *buff, int size) {
     dp.dataSize[1] = buff[2];
     dp.dataSize[0] = buff[3];
     int dataSize = (dp.dataSize[1] << 8) + dp.dataSize[0];
-    printf("Data Size : %d\n", dataSize);
+    //printf("Data Size : %d\n", dataSize);
     dp.data = (byte *)(malloc(dataSize * sizeof(byte)));
     for (int i = 0; i < dataSize; i++) {
       dp.data[i] = buff[4 + i];
@@ -170,7 +170,8 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   // printf("About the File\n");
   // printf("Name: %s\n", baseFilename);
   // printf("Size: %ld bytes\n", fileStat.st_size);
-
+  int x = 5;
+  void *p = &x;
   Tlv fileSize = {PT_FILE_SIZE, sizeof(fileStat.st_size),
                   (byte *)(&fileStat.st_size)};
   Tlv fileName = {PT_FILE_NAME, strlen(baseFilename), (byte *)baseFilename};
@@ -202,7 +203,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   // memcpy(packetBuffer, &packet, sizeof(packet));
   //  llwrite(packetBuffer, sizeof(packet));
 
-  printf("File : %s\n", filename);
+  //printf("File : %s\n", filename);
 
   FILE *fdFile = fopen(filename, "rb");
   if (NULL == fdFile) {
@@ -214,7 +215,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
   int totalPackets =
       ceil((double)fileStat.st_size / (double)MAX_DATAPACKET_SIZE);
   int currentPacketNumber = 0;
-  printf("Total Packets :%d\n", totalPackets);
+  //printf("Total Packets :%d\n", totalPackets);
   byte data[MAX_DATAPACKET_SIZE];
   int currentPacket = 0;
   while (currentPacket < totalPackets) { // Not sure how yet
@@ -243,7 +244,7 @@ void applicationSend(LinkLayer parameters, const char *filename) {
       printf("Timout occured! Exitting Program\n");
       exit(-1);
     }
-    printf("Sending %d/%d\n", ++currentPacketNumber, totalPackets);
+    //printf("Sending %d/%d\n", ++currentPacketNumber, totalPackets);
 
     // printf("Primeiro DataPacket: ");
     // printHexN(currentPacketBuffer, size);
@@ -312,8 +313,8 @@ void applicationReceive(LinkLayer parameters) {
       finished = 1;
       break;
     }
-    printf("Wrote to file! bytes: %d\n", size);
-    printf("Packet n %d\n", ++packetCounter);
+    //printf("Wrote to file! bytes: %d\n", size);
+    //printf("Packet n %d\n", ++packetCounter);
 
     fwrite((buffer + 4), size - 4, 1, f);
     // printf("Primeiro DataPacket: ");
@@ -341,9 +342,9 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   ll.nRetransmissions = nTries;
   ll.timeout = timeout;
   strcpy(ll.serialPort, serialPort);
-  printf("Serial Port: %s", ll.serialPort);
+  //printf("Serial Port: %s", ll.serialPort);
   if (llopen(ll) == -1) {
-    printf("Could not establish connection");
+    //printf("Could not establish connection");
     return;
   }
 

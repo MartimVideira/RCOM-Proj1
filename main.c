@@ -7,7 +7,7 @@
 #include "application_layer.h"
 // MaxBaudrate 115200
 // MinBaurate 9600
-#define BAUDRATE 115200
+#define BAUDRATE 9600
 #define N_TRIES 3
 #define TIMEOUT 4
 

@@ -70,6 +70,7 @@ void showStatistics(Statistics* s){
   printf("Total Time Taken:%f\n",totalTime);
   printf("Total Supervision sent:%d\n",s->sSent);
   printf("Total Supervision received:%d\n",s->sReceived);
+  printf("Total I frame sent:%d\n",s->iSent);
   printf("Total Frames Sent:%d\n",s->sSent + s->iSent);
   printf("Total Frames Received:%d\n",s->sReceived + s->iReceived);
   printf("Number of retransmitions:%d\n",s->retransmitions);
@@ -216,7 +217,7 @@ int llopen(LinkLayer connectionParameters) {
       }
     }
   }
-  G_statistics.timeToConect = G_statistics.startTime - clock();
+  G_statistics.timeToConect = clock() -G_statistics.startTime;
   return connectionEstablished;
 }
 

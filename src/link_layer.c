@@ -30,6 +30,53 @@ int G_frameNumber = 0;
 int G_expectedFrameNumber = 0;
 LinkLayer G_parameters;
 
+typedef struct{
+    clock_t startTime;
+    clock_t endTime;
+
+    // Time to connect
+    clock_t timeToConect;
+
+    // TIme to disconnect
+    clock_t timeToDisconect;
+    // Number Of bytes written /read
+    int bytesWritten;
+    int bytesWrittenF;
+    int bytesRead;
+    int bytesReadF;
+    // Number of retransmittions
+    int retransmitions;
+    // Number Of packets send 
+    int sSent;
+    int sReceived;
+    int iSent;
+    int iReceived;
+    int rejReceived;
+    int rejSent;
+    // Time watting for responses
+    clock_t waitingResponses;
+
+} Statistics;
+void showStatistics(Statistics* s){
+  float timeToConnect= (float)(s->timeToConect) / CLOCKS_PER_SEC;
+  float timeToEndConnection = (float)(s->timeToDisconect)/CLOCKS_PER_SEC;
+  float totalTime=(float)(s->endTime - s->startTime)/CLOCKS_PER_SEC;
+  printf("BaudRate:%d\n",G_parameters.baudRate);
+  printf("MAX_PAYLOAD_SIZE:%d\n",MAX_PAYLOAD_SIZE);
+  printf("Total Bytes written:%d\n",s->bytesWritten);
+  printf("Actual Total Bytes written:%d\n",s->bytesWrittenF);
+  printf("Time taken to establish connection:%f\n",timeToConnect);
+  printf("Time taken to end connection:%f\n",timeToEndConnection);
+  printf("Total Time Taken:%f\n",totalTime);
+  printf("Total Supervision sent:%d\n",s->sSent);
+  printf("Total Supervision received:%d\n",s->sReceived);
+  printf("Total Frames Sent:%d\n",s->sSent + s->iSent);
+  printf("Total Frames Received:%d\n",s->sReceived + s->iReceived);
+  printf("Number of retransmitions:%d\n",s->retransmitions);
+  printf("Number of rejects received:%d\n",s->rejReceived);
+  printf("Number of rejects sent:%d\n",s->rejSent);
+}
+Statistics G_statistics = {0};
 ////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////
@@ -90,9 +137,11 @@ void alarmHandler() {
   }
   G_reTransmitions -= 1;
   printf("Retransmition!\n");
+  G_statistics.retransmitions++;
 }
 
 int llopen(LinkLayer connectionParameters) {
+  G_statistics.startTime = clock();
   if (!openSerialPort(connectionParameters)) {
     perror("Error while opening serial port");
     return FALSE;
@@ -101,7 +150,7 @@ int llopen(LinkLayer connectionParameters) {
   printf("Opened serialport\n");
   int connectionEstablished = -1;
 
-  // Tranitter
+  // Transmitter
   if (connectionParameters.role == LlTx) {
     G_reTransmitions = connectionParameters.nRetransmissions;
     (void)signal(SIGALRM, alarmHandler);
@@ -109,6 +158,7 @@ int llopen(LinkLayer connectionParameters) {
       // printf("retransmitions left:%d\n",G_reTransmitions);
       // printf("Sending Set command\n");
       sendFrame_su(G_fd, C_SET);
+      G_statistics.iSent++;
       alarm(connectionParameters.timeout);
       G_READING = 1;
       byte answer[5];
@@ -129,6 +179,7 @@ int llopen(LinkLayer connectionParameters) {
             G_READING = 0;
             G_SENDING = 0;
             connectionEstablished = 1;
+            G_statistics.sReceived++;
             // printf("Connection Was Established for writting RECEIVED UA!\n");
           }
         }
@@ -159,11 +210,13 @@ int llopen(LinkLayer connectionParameters) {
           // printf("Connection Was  For Reading Established! RECEIVED SET\n");
           //  Send Back UA
           sendFrame_su(G_fd, C_UA);
+          G_statistics.sReceived++;
+          G_statistics.sSent++;
         }
       }
     }
   }
-
+  G_statistics.timeToConect = G_statistics.startTime - clock();
   return connectionEstablished;
 }
 
@@ -173,8 +226,10 @@ int llopen(LinkLayer connectionParameters) {
 int llwrite(const unsigned char *buf, int bufSize) {
   // Build I-Frame from buff
   size_t size = bufSize;
+  G_statistics.bytesWritten+= bufSize;
   //printf("Sending frameNumbe :%d\n", G_frameNumber);
   byte *frame = bufferToFrameI(buf, &size, G_frameNumber);
+  G_statistics.bytesWrittenF+=size;
     //printf("Sent frame with frameNumber: %d\n",frameNumber(frame));
   // printf("Writing the following I%d frame : ",G_frameNumber);
   // printHexN(frame, size); printf("\n");
@@ -187,6 +242,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
     // printf("retransmitions left:%d\n", G_reTransmitions);
     // printf("Sending frameI%d\n",G_frameNumber);
     sendFrame_i(G_fd, frame, size);
+    G_statistics.iSent++;
     alarm(G_parameters.timeout);
     G_READING = 1;
     byte answer[5];
@@ -198,7 +254,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
       if (read(G_fd, &nextByte, 1) == -1)
         continue;
       if (buildFrame_s(answer, &currentByte, nextByte)) {
-
+        G_statistics.sReceived++;
         // printf("Received answer: \n");
         // printHexN(answer, 5);
         // printf("\n");
@@ -223,6 +279,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
           // tentativas
           // G_reTransmitions = G_parameters.nRetransmissions;
           printf("Received rej need to send again\n");
+          G_statistics.rejReceived++;
         }
       }
     }
@@ -249,6 +306,7 @@ int llread(unsigned char *packet) {
     // printHexN(frameI, size);
     // printf("\n");
     int receivedFrameNumber = frameNumber(frameI);
+    G_statistics.sSent++;
     // Send Packet again! Error in bcc
     if (!checkBccFrame_i(frameI, size)) {
       ControlField control = C_REJ0;
@@ -256,6 +314,7 @@ int llread(unsigned char *packet) {
         control = C_REJ1;
       sendFrame_su(G_fd, control);
       printf("Sent Frame Reject{%d}!\n", receivedFrameNumber);
+      G_statistics.rejSent++;
     } else {
       // If received the correct Frame send change G_expectedFrameNumber to Next
       // Else  sender did not receive our RR G_expectedFrameNumber remains the
@@ -288,6 +347,7 @@ int llcloseT() {
     // printf("retransmitions left:%d\n",G_reTransmitions);
     // printf("Sending Set command\n");
     sendFrame_su(G_fd, C_DISC);
+    G_statistics.sSent++;
     alarm(G_parameters.timeout);
     G_READING = 1;
     byte answer[5];
@@ -310,6 +370,7 @@ int llcloseT() {
           G_READING = 0;
           G_SENDING = 0;
           //printf("Received disc from reader sending ua\n");
+          G_statistics.sReceived++;
         }
       }
     }
@@ -344,6 +405,8 @@ int llcloseR() {
         currentByte = 0;
         //printf("Received disc from writter sending disc and waiting for ua \n");
         sendFrame_su(G_fd, C_DISC);
+        G_statistics.sSent++;
+        G_statistics.sReceived++;
       }
     }
   }
@@ -356,11 +419,15 @@ int llcloseR() {
 ////////////////////////////////////////////////
 // LLCLOSE
 ////////////////////////////////////////////////
-int llclose(int showStatistics) {
+int llclose(int showStatistic) {
   printf("llclose\n");
+  clock_t startedDisconect= clock();
   if (G_parameters.role == LlTx) {
     llcloseT();
   } else
     llcloseR();
+  G_statistics.endTime = clock();
+  G_statistics.timeToDisconect =G_statistics.endTime - startedDisconect;
+  showStatistics(&G_statistics);
   return 1;
 }

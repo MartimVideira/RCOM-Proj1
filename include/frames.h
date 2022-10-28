@@ -1,6 +1,7 @@
 #ifndef FRAMES_H
 #define FRAMES_H
-
+#include <stdlib.h>
+#include <time.h>
 
 #define MAX_PAYLOAD_SIZE 1000
 
@@ -11,7 +12,6 @@
 #define ESCAPE_XOR_CHR 0x20
 #define ADDRESS 0x03
 
-#include <stdlib.h>
 typedef unsigned char byte;
 
 

@@ -4,7 +4,7 @@
 #include <time.h>
 
 
-#define MAX_PAYLOAD_SIZE 100
+#define MAX_PAYLOAD_SIZE 11000
 
 #define MAX_FRAME_SIZE (MAX_PAYLOAD_SIZE*2 + 2 + 1 + 2*2)
 
